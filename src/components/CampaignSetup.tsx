@@ -5,9 +5,8 @@ import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Avatar, AvatarFallback } from './ui/avatar';
-import { ChevronRight, Plus, X, Users } from 'lucide-react';
-import { CampaignData, TeamMember } from '../App';
+import { ChevronRight } from 'lucide-react';
+import { CampaignData } from '../App';
 
 interface CampaignSetupProps {
   data: CampaignData;
@@ -20,9 +19,6 @@ interface CampaignSetupProps {
 // Categories are now derived from selected product - no manual selection needed
 
 export function CampaignSetup({ data, onUpdate, onNext }: CampaignSetupProps) {
-  const [newMemberEmail, setNewMemberEmail] = useState('');
-  const [newMemberRole, setNewMemberRole] = useState<'viewer' | 'editor' | 'admin'>('editor');
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (data.name && (data.selectedProduct?.category || data.category)) {
@@ -32,29 +28,6 @@ export function CampaignSetup({ data, onUpdate, onNext }: CampaignSetupProps) {
       });
       onNext();
     }
-  };
-
-  const addTeamMember = () => {
-    if (newMemberEmail && !data.teamMembers.some(member => member.email === newMemberEmail)) {
-      const newMember: TeamMember = {
-        id: Date.now().toString(),
-        name: newMemberEmail.split('@')[0],
-        email: newMemberEmail,
-        role: newMemberRole
-      };
-      
-      onUpdate({
-        teamMembers: [...data.teamMembers, newMember]
-      });
-      
-      setNewMemberEmail('');
-    }
-  };
-
-  const removeMember = (memberId: string) => {
-    onUpdate({
-      teamMembers: data.teamMembers.filter(member => member.id !== memberId)
-    });
   };
 
   const formatBudget = (value: number) => {
@@ -201,80 +174,6 @@ export function CampaignSetup({ data, onUpdate, onNext }: CampaignSetupProps) {
                   value={data.flightLength}
                   onChange={(e) => onUpdate({ flightLength: parseInt(e.target.value) || 30 })}
                 />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Team Collaboration */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5" />
-                <span>Team Collaboration</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="member-email">Invite Team Members</Label>
-                  <div className="flex space-x-2">
-                    <Input
-                      id="member-email"
-                      type="email"
-                      placeholder="email@company.com"
-                      value={newMemberEmail}
-                      onChange={(e) => setNewMemberEmail(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTeamMember())}
-                    />
-                    <Select value={newMemberRole} onValueChange={(value: any) => setNewMemberRole(value)}>
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="viewer">Viewer</SelectItem>
-                        <SelectItem value="editor">Editor</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button type="button" size="icon" onClick={addTeamMember}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {data.teamMembers.length > 0 && (
-                  <div className="space-y-3">
-                    <Label>Team Members ({data.teamMembers.length})</Label>
-                    <div className="space-y-2">
-                      {data.teamMembers.map((member) => (
-                        <div key={member.id} className="flex items-center justify-between p-3 bg-accent/50 rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback>{member.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="text-sm">{member.name}</div>
-                              <div className="text-xs text-muted-foreground">{member.email}</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Badge variant={member.role === 'admin' ? 'default' : 'secondary'}>
-                              {member.role}
-                            </Badge>
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => removeMember(member.id)}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>

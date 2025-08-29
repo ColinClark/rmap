@@ -40,7 +40,8 @@ import {
   Info,
   Star,
   Edit,
-  Trash2
+  Trash2,
+  Sparkles
 } from 'lucide-react';
 import { CampaignData, Brand, Product, BrandAsset, StatistaStudyRequest, ProductFeature } from '../App';
 
@@ -495,7 +496,10 @@ export function BrandProductSelection({ data, onUpdate, onNext }: BrandProductSe
             Product Selection
           </TabsTrigger>
           <TabsTrigger value="statista-research" disabled={!data.selectedBrand}>
-            Statista Research
+            <span className="flex items-center space-x-1">
+              <span>Statista Research</span>
+              <Sparkles className="h-3 w-3 text-yellow-500 animate-pulse" />
+            </span>
           </TabsTrigger>
           <TabsTrigger value="project-materials">Project Materials</TabsTrigger>
         </TabsList>

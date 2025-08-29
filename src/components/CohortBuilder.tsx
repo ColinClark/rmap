@@ -189,6 +189,21 @@ export function CohortBuilder({ data, onUpdate, onNext, onPrev }: CohortBuilderP
 
   const selectedBundesland = bundeslaender.find(b => b.code === data.directCohorts.bundesland);
 
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [activeTab, setActiveTab] = useState('direct');
+
+  // Track scroll position - only when Direct Cohorts tab is active
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      // Only set scrolled state when on Direct Cohorts tab
+      setIsScrolled(activeTab === 'direct' && scrollY > 100);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [activeTab]);
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div>
@@ -206,7 +221,77 @@ export function CohortBuilder({ data, onUpdate, onNext, onPrev }: CohortBuilderP
         </AlertDescription>
       </Alert>
 
-      <Tabs defaultValue="direct" className="w-full">
+      {/* Combined Audience Metrics Panel - Fixed when scrolled */}
+      <div className={`${isScrolled ? 'fixed top-0 left-0 right-0 z-50 px-6 py-4 bg-background' : ''}`}>
+        <Card className={`${isScrolled ? 'bg-background border-primary/30 shadow-xl max-w-6xl mx-auto' : 'bg-primary/5 border-primary/20'}`}>
+          <CardContent className={`${isScrolled ? 'py-4' : 'py-6'}`}>
+          <div className="space-y-4">
+            {/* Main Audience Metrics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* SynthiePop Population */}
+              <div className="flex items-center justify-center space-x-4">
+                <Database className="h-8 w-8 text-primary" />
+                <div className="text-center">
+                  <div className="text-2xl font-semibold text-primary">{data.directCohorts.population.toLocaleString()}</div>
+                  <div className="text-sm text-muted-foreground">
+                    SynthiePop Population
+                    {data.directCohorts.complexQuery && (
+                      <span className="text-xs text-amber-600 ml-1">(Complex Query)</span>
+                    )}
+                  </div>
+                  {selectedBundesland && (
+                    <div className="text-xs text-muted-foreground mt-1">in {selectedBundesland.name}</div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Total Audience Size */}
+              <div className="flex items-center justify-center space-x-4">
+                <Users className="h-8 w-8 text-primary" />
+                <div className="text-center">
+                  <div className="text-2xl font-semibold text-primary">{data.audienceSize.toLocaleString()}</div>
+                  <div className="text-sm text-muted-foreground">
+                    Total Audience Size
+                    {data.proxyCohorts.length > 0 && (
+                      <span className="text-xs text-muted-foreground"> ({data.proxyCohorts.length} proxy cohorts)</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Market Opportunity Analysis */}
+            {data.category && (
+              <div className="border-t pt-4">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-xl font-semibold text-green-600">
+                      {Math.floor(data.directCohorts.population * 0.23).toLocaleString()}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Statista: {data.category} Users</div>
+                  </div>
+                  <div>
+                    <div className="text-xl font-semibold text-amber-600">
+                      {Math.floor(data.directCohorts.population * 0.77).toLocaleString()}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Opportunity Gap</div>
+                  </div>
+                  <div>
+                    <div className="text-xl font-semibold text-blue-600">77%</div>
+                    <div className="text-sm text-muted-foreground">Untapped Potential</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      </div>
+
+      {/* Spacer to prevent content jump when panel becomes fixed */}
+      {isScrolled && <div className="h-32"></div>}
+
+      <Tabs defaultValue="direct" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="direct" className="flex items-center space-x-2">
             <Database className="h-4 w-4" />
@@ -219,6 +304,159 @@ export function CohortBuilder({ data, onUpdate, onNext, onPrev }: CohortBuilderP
         </TabsList>
 
         <TabsContent value="direct" className="space-y-6">
+          {/* Occupation & Advanced Filters */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Occupation & Advanced Targeting (KldB Codes)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Quick Occupation Presets */}
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Quick Occupation Presets</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onUpdate({
+                      directCohorts: { 
+                        ...data.directCohorts, 
+                        occupation: ['Managers and Senior Officials', 'Professional Occupations']
+                      }
+                    })}
+                    className="text-xs"
+                  >
+                    High-Income Professionals
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onUpdate({
+                      directCohorts: { 
+                        ...data.directCohorts, 
+                        occupation: ['Sales and Customer Service', 'Personal Service']
+                      }
+                    })}
+                    className="text-xs"
+                  >
+                    Service Workers
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onUpdate({
+                      directCohorts: { 
+                        ...data.directCohorts, 
+                        occupation: ['Technical and Associate Professional', 'Administrative and Secretarial']
+                      }
+                    })}
+                    className="text-xs"
+                  >
+                    White Collar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onUpdate({
+                      directCohorts: { 
+                        ...data.directCohorts, 
+                        occupation: ['Skilled Trades', 'Process, Plant and Machine Operatives']
+                      }
+                    })}
+                    className="text-xs"
+                  >
+                    Blue Collar
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="border-t pt-4">
+                <Label className="text-sm font-medium mb-3 block">Individual Occupation Categories</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {occupationCategories.map((occupation) => (
+                    <div key={occupation} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={occupation}
+                        checked={data.directCohorts.occupation.includes(occupation)}
+                        onCheckedChange={(checked) => handleOccupationChange(occupation, !!checked)}
+                      />
+                      <Label htmlFor={occupation} className="text-sm">{occupation}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Advanced SynthiePop Query Builder */}
+              <div className="border-t pt-4 space-y-3">
+                <Label className="text-sm font-medium">Advanced SynthiePop Query Builder</Label>
+                
+                {/* Sample Query Buttons */}
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Sample Complex Queries:</Label>
+                  <div className="grid grid-cols-1 gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-2 text-xs text-left justify-start"
+                      onClick={() => {
+                        const query = "(age >= 30 AND age <= 45) AND (householdSize >= 3) AND (bundesland IN [8,9])";
+                        onUpdate({
+                          directCohorts: { ...data.directCohorts, complexQuery: query }
+                        });
+                      }}
+                    >
+                      <code className="text-xs">Families in South Germany: (age 30-45) AND (household ≥3) AND (Baden-Württemberg OR Bayern)</code>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-2 text-xs text-left justify-start"
+                      onClick={() => {
+                        const query = "(gender = 2) AND (age >= 25 AND age <= 40) AND (occupation LIKE '%Professional%' OR occupation LIKE '%Manager%')";
+                        onUpdate({
+                          directCohorts: { ...data.directCohorts, complexQuery: query }
+                        });
+                      }}
+                    >
+                      <code className="text-xs">Professional Women: (female) AND (age 25-40) AND (professional/manager roles)</code>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-auto p-2 text-xs text-left justify-start"
+                      onClick={() => {
+                        const query = "(householdSize = 1) AND (age >= 55) AND (bundesland IN [11,2,6])";
+                        onUpdate({
+                          directCohorts: { ...data.directCohorts, complexQuery: query }
+                        });
+                      }}
+                    >
+                      <code className="text-xs">Urban Singles 55+: (single household) AND (age ≥55) AND (Berlin OR Hamburg OR Hessen)</code>
+                    </Button>
+                  </div>
+                </div>
+                
+                <Textarea
+                  placeholder="Enter custom SQL-like query or use samples above..."
+                  value={data.directCohorts.complexQuery || ''}
+                  className="h-20 text-xs font-mono"
+                  onChange={(e) => {
+                    onUpdate({
+                      directCohorts: {
+                        ...data.directCohorts,
+                        complexQuery: e.target.value
+                      }
+                    });
+                  }}
+                />
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p><strong>Variables:</strong> age, gender (1=male, 2=female), householdSize, bundesland (1-16), occupation, migrationBackground (true/false)</p>
+                  <p><strong>Operators:</strong> AND, OR, IN, LIKE, =, !=, &gt;=, &lt;=, &gt;, &lt;</p>
+                  <p><strong>Examples:</strong> age &gt;= 30, gender = 2, bundesland IN [8,9,11], occupation LIKE '%Manager%'</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Geographic Targeting */}
             <Card>
@@ -385,210 +623,6 @@ export function CohortBuilder({ data, onUpdate, onNext, onPrev }: CohortBuilderP
               </CardContent>
             </Card>
           </div>
-
-          {/* Occupation & Advanced Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Occupation & Advanced Targeting (KldB Codes)</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Quick Occupation Presets */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Quick Occupation Presets</Label>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onUpdate({
-                      directCohorts: { 
-                        ...data.directCohorts, 
-                        occupation: ['Managers and Senior Officials', 'Professional Occupations']
-                      }
-                    })}
-                    className="text-xs"
-                  >
-                    High-Income Professionals
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onUpdate({
-                      directCohorts: { 
-                        ...data.directCohorts, 
-                        occupation: ['Sales and Customer Service', 'Personal Service']
-                      }
-                    })}
-                    className="text-xs"
-                  >
-                    Service Workers
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onUpdate({
-                      directCohorts: { 
-                        ...data.directCohorts, 
-                        occupation: ['Technical and Associate Professional', 'Administrative and Secretarial']
-                      }
-                    })}
-                    className="text-xs"
-                  >
-                    White Collar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onUpdate({
-                      directCohorts: { 
-                        ...data.directCohorts, 
-                        occupation: ['Skilled Trades', 'Process, Plant and Machine Operatives']
-                      }
-                    })}
-                    className="text-xs"
-                  >
-                    Blue Collar
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="border-t pt-4">
-                <Label className="text-sm font-medium mb-3 block">Individual Occupation Categories</Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {occupationCategories.map((occupation) => (
-                    <div key={occupation} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={occupation}
-                        checked={data.directCohorts.occupation.includes(occupation)}
-                        onCheckedChange={(checked) => handleOccupationChange(occupation, !!checked)}
-                      />
-                      <Label htmlFor={occupation} className="text-sm">{occupation}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              {/* Advanced SynthiePop Query Builder */}
-              <div className="border-t pt-4 space-y-3">
-                <Label className="text-sm font-medium">Advanced SynthiePop Query Builder</Label>
-                
-                {/* Sample Query Buttons */}
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">Sample Complex Queries:</Label>
-                  <div className="grid grid-cols-1 gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto p-2 text-xs text-left justify-start"
-                      onClick={() => {
-                        const query = "(age >= 30 AND age <= 45) AND (householdSize >= 3) AND (bundesland IN [8,9])";
-                        onUpdate({
-                          directCohorts: { ...data.directCohorts, complexQuery: query }
-                        });
-                      }}
-                    >
-                      <code className="text-xs">Families in South Germany: (age 30-45) AND (household ≥3) AND (Baden-Württemberg OR Bayern)</code>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto p-2 text-xs text-left justify-start"
-                      onClick={() => {
-                        const query = "(gender = 2) AND (age >= 25 AND age <= 40) AND (occupation LIKE '%Professional%' OR occupation LIKE '%Manager%')";
-                        onUpdate({
-                          directCohorts: { ...data.directCohorts, complexQuery: query }
-                        });
-                      }}
-                    >
-                      <code className="text-xs">Professional Women: (female) AND (age 25-40) AND (professional/manager roles)</code>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-auto p-2 text-xs text-left justify-start"
-                      onClick={() => {
-                        const query = "(householdSize = 1) AND (age >= 55) AND (bundesland IN [11,2,6])";
-                        onUpdate({
-                          directCohorts: { ...data.directCohorts, complexQuery: query }
-                        });
-                      }}
-                    >
-                      <code className="text-xs">Urban Singles 55+: (single household) AND (age ≥55) AND (Berlin OR Hamburg OR Hessen)</code>
-                    </Button>
-                  </div>
-                </div>
-                
-                <Textarea
-                  placeholder="Enter custom SQL-like query or use samples above..."
-                  value={data.directCohorts.complexQuery || ''}
-                  className="h-20 text-xs font-mono"
-                  onChange={(e) => {
-                    onUpdate({
-                      directCohorts: {
-                        ...data.directCohorts,
-                        complexQuery: e.target.value
-                      }
-                    });
-                  }}
-                />
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p><strong>Variables:</strong> age, gender (1=male, 2=female), householdSize, bundesland (1-16), occupation, migrationBackground (true/false)</p>
-                  <p><strong>Operators:</strong> AND, OR, IN, LIKE, =, !=, &gt;=, &lt;=, &gt;, &lt;</p>
-                  <p><strong>Examples:</strong> age &gt;= 30, gender = 2, bundesland IN [8,9,11], occupation LIKE '%Manager%'</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Population Preview with Market Opportunity */}
-          <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="py-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-center space-x-4">
-                  <Database className="h-8 w-8 text-primary" />
-                  <div className="text-center">
-                    <div className="text-3xl text-primary">{data.directCohorts.population.toLocaleString()}</div>
-                    <div className="text-muted-foreground">
-                      SynthiePop Population
-                      {data.directCohorts.complexQuery && (
-                        <span className="text-xs text-amber-600 ml-1">(Complex Query)</span>
-                      )}
-                    </div>
-                    {selectedBundesland && (
-                      <div className="text-sm text-muted-foreground mt-1">in {selectedBundesland.name}</div>
-                    )}
-                    {data.directCohorts.complexQuery && (
-                      <div className="text-xs text-amber-700 mt-2 max-w-md mx-auto">
-                        Custom demographic filter applied
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                {data.category && (
-                  <div className="border-t pt-4">
-                    <div className="grid grid-cols-3 gap-4 text-center text-sm">
-                      <div>
-                        <div className="text-xl font-semibold text-green-600">
-                          {Math.floor(data.directCohorts.population * 0.23).toLocaleString()}
-                        </div>
-                        <div className="text-muted-foreground">Statista: {data.category} Users</div>
-                      </div>
-                      <div>
-                        <div className="text-xl font-semibold text-amber-600">
-                          {Math.floor(data.directCohorts.population * 0.77).toLocaleString()}
-                        </div>
-                        <div className="text-muted-foreground">Opportunity Gap</div>
-                      </div>
-                      <div>
-                        <div className="text-xl font-semibold text-blue-600">77%</div>
-                        <div className="text-muted-foreground">Untapped Potential</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="proxy" className="space-y-6">
@@ -733,25 +767,6 @@ export function CohortBuilder({ data, onUpdate, onNext, onPrev }: CohortBuilderP
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Total Audience */}
-      <Card className="bg-accent/50">
-        <CardContent className="py-6">
-          <div className="flex items-center justify-center space-x-6">
-            <div className="text-center">
-              <Users className="h-8 w-8 mx-auto mb-2 text-primary" />
-              <div className="text-3xl">{data.audienceSize.toLocaleString()}</div>
-              <div className="text-muted-foreground">Total Audience Size</div>
-            </div>
-            {data.proxyCohorts.length > 0 && (
-              <div className="text-center">
-                <div className="text-lg">{data.proxyCohorts.length}</div>
-                <div className="text-muted-foreground">Proxy Cohorts</div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       <div className="flex justify-between pt-4">
         <Button variant="outline" onClick={onPrev}>

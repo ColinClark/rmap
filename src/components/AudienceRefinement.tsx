@@ -126,7 +126,9 @@ export function AudienceRefinement({ data, onUpdate, onNext, onPrev }: AudienceR
 
     for (let i = 0; i < targetPopulation; i++) {
       const age = Math.floor(Math.random() * (data.directCohorts.ageRange[1] - data.directCohorts.ageRange[0])) + data.directCohorts.ageRange[0];
-      const bundesland = data.directCohorts.bundesland || (Math.floor(Math.random() * 16) + 1);
+      const bundesland = data.directCohorts.bundesland > 0 ? 
+        data.directCohorts.bundesland : 
+        (Math.floor(Math.random() * 16) + 1);
       const gender = data.directCohorts.gender.length > 0 ? 
         data.directCohorts.gender[Math.floor(Math.random() * data.directCohorts.gender.length)] :
         Math.floor(Math.random() * 2) + 1;
