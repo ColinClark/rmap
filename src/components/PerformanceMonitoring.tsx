@@ -33,6 +33,7 @@ import {
   MessageSquare,
   Bot,
   User,
+  Users,
   Send,
   Lightbulb,
   Zap,

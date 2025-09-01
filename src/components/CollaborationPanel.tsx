@@ -25,7 +25,8 @@ import {
   Copy,
   Download,
   Settings,
-  PlayCircle
+  PlayCircle,
+  Upload
 } from 'lucide-react';
 import { CampaignData, TeamMember, Comment } from '../App';
 
@@ -355,21 +356,90 @@ ${data.name},${data.directCohorts.population} people,${data.budget},${data.fligh
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="font-medium">CSV Export (Spreadsheet)</h4>
-                  <div className="bg-muted p-4 rounded-lg">
-                    <pre className="text-xs overflow-x-auto max-h-64">
-                      {exportData.csv}
-                    </pre>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" className="flex-1">
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy CSV
-                    </Button>
-                    <Button variant="outline" className="flex-1">
-                      <Download className="h-4 w-4 mr-2" />
-                      Download CSV
-                    </Button>
+                  <h4 className="font-medium flex items-center space-x-2">
+                    <Users className="h-4 w-4" />
+                    <span>Cross-Match Audience Seeding</span>
+                  </h4>
+                  <div className="p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg space-y-4">
+                    <p className="text-sm text-gray-700">
+                      Match your SynthiePop segments with existing customer populations to create high-value seed audiences for lookalike expansion.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-white/80 p-3 rounded">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                          <span className="text-sm font-medium">Available Populations</span>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="flex items-center space-x-2 text-sm">
+                            <input type="checkbox" className="rounded" defaultChecked />
+                            <span>CRM Database (2.3M records)</span>
+                          </label>
+                          <label className="flex items-center space-x-2 text-sm">
+                            <input type="checkbox" className="rounded" defaultChecked />
+                            <span>Email Subscribers (1.8M records)</span>
+                          </label>
+                          <label className="flex items-center space-x-2 text-sm">
+                            <input type="checkbox" className="rounded" />
+                            <span>Mobile App Users (890K records)</span>
+                          </label>
+                          <label className="flex items-center space-x-2 text-sm">
+                            <input type="checkbox" className="rounded" />
+                            <span>Loyalty Members (560K records)</span>
+                          </label>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-white/80 p-3 rounded">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+                          <span className="text-sm font-medium">Match Results</span>
+                        </div>
+                        <div className="space-y-1 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Total Records:</span>
+                            <span className="font-medium">4.1M</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Matched with SynthiePop:</span>
+                            <span className="font-medium text-green-600">1.2M (29%)</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">High-Value Matches:</span>
+                            <span className="font-medium text-blue-600">340K</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Seed Quality Score:</span>
+                            <span className="font-medium text-emerald-600">92/100</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-amber-50 border border-amber-200 p-3 rounded">
+                      <div className="flex items-start space-x-2">
+                        <AlertCircle className="h-4 w-4 text-amber-600 mt-0.5" />
+                        <div className="text-sm">
+                          <p className="font-medium text-amber-800">Privacy-Safe Matching</p>
+                          <p className="text-amber-700 mt-1">
+                            All matching performed using hashed identifiers in compliance with GDPR. 
+                            No PII is exposed during the cross-matching process.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      <Button variant="outline" className="flex-1">
+                        <Settings className="h-4 w-4 mr-2" />
+                        Configure Match Rules
+                      </Button>
+                      <Button className="flex-1 bg-gradient-to-r from-blue-600 to-green-600 text-white">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Export Seed Audience
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
