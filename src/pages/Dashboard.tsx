@@ -143,6 +143,17 @@ const workflows: WorkflowCard[] = [
     badge: 'Premium'
   },
   {
+    id: 'data-query',
+    title: 'Data Query',
+    description: 'Execute SQL queries and explore your data warehouse',
+    icon: Database,
+    color: 'bg-slate-600',
+    status: 'available',
+    permission: 'data',
+    usage: { lastUsed: 'Just now', timesUsed: 12 },
+    badge: 'New'
+  },
+  {
     id: 'data-connector',
     title: 'Data Connector',
     description: 'Connect and sync data from multiple sources',
@@ -188,6 +199,8 @@ export function Dashboard() {
     // Navigate to the workflow
     if (workflow.id === 'retail-media') {
       navigate('/workflows/retail-media');
+    } else if (workflow.id === 'data-query') {
+      navigate('/workflows/data-query');
     } else {
       // Other workflows to be implemented
       console.log(`Navigate to ${workflow.id}`);

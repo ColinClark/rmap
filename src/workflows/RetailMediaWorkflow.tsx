@@ -7,8 +7,9 @@ import { StrategyGenerator } from '../components/StrategyGenerator';
 import { ComparativeDashboard } from '../components/ComparativeDashboard';
 import { CollaborationPanel } from '../components/CollaborationPanel';
 import { PerformanceMonitoring } from '../components/PerformanceMonitoring';
+import { QueryBuilder } from '../components/QueryBuilder';
 import { Progress } from '../components/ui/progress';
-import { Users, Package, Building2 } from 'lucide-react';
+import { Users, Package, Building2, Database } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
 export interface SynthiePopData {
@@ -374,6 +375,7 @@ export interface CampaignData {
 const steps = [
   'Brand & Product Selection',
   'Campaign Setup',
+  'Data Query',
   'Cohort Builder',
   'Audience Refinement',
   'Strategy Generator',
@@ -475,16 +477,31 @@ export function RetailMediaWorkflow() {
       case 1:
         return <CampaignSetup data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
       case 2:
-        return <CohortBuilder data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
+        return (
+          <div className="space-y-6">
+            <QueryBuilder 
+              onQueryResult={(data) => {
+                console.log('Query results:', data);
+                // You can update campaign data with query results if needed
+              }}
+            />
+            <div className="flex justify-between">
+              <Button onClick={prevStep} variant="outline">Previous</Button>
+              <Button onClick={nextStep}>Next</Button>
+            </div>
+          </div>
+        );
       case 3:
-        return <AudienceRefinement data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
+        return <CohortBuilder data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
       case 4:
-        return <StrategyGenerator data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
+        return <AudienceRefinement data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
       case 5:
-        return <ComparativeDashboard data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
+        return <StrategyGenerator data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
       case 6:
-        return <CollaborationPanel data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
+        return <ComparativeDashboard data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
       case 7:
+        return <CollaborationPanel data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
+      case 8:
         return <PerformanceMonitoring data={campaignData} onUpdate={updateCampaignData} onPrev={prevStep} />;
       default:
         return null;

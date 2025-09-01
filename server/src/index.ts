@@ -4,6 +4,14 @@ import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
 import { z } from 'zod'
 import { zValidator } from '@hono/zod-validator'
+import * as dotenv from 'dotenv'
+
+// Load environment variables
+dotenv.config()
+
+// Load configuration
+import configLoader from './services/config/ConfigLoader'
+const config = configLoader.loadConfig()
 
 // Import routes
 import { audienceRoutes } from './routes/audience'
@@ -11,6 +19,8 @@ import { campaignRoutes } from './routes/campaign'
 import { analyticsRoutes } from './routes/analytics'
 import { integrationRoutes } from './routes/integrations'
 import { tenantRoutes } from './routes/tenant'
+import queryRoutes from './routes/query'
+import testMcpRoutes from './routes/test-mcp'
 
 // Import middleware
 import { tenantMiddleware, tenantRateLimitMiddleware } from './middleware/tenant'
@@ -56,6 +66,10 @@ app.route('/api/audience', audienceRoutes)
 app.route('/api/campaign', campaignRoutes)
 app.route('/api/analytics', analyticsRoutes)
 app.route('/api/integrations', integrationRoutes)
+app.route('/api/query', queryRoutes)
+
+// Test MCP routes (no tenant required for testing)
+app.route('/test-mcp', testMcpRoutes)
 
 // Error handling
 app.onError((err, c) => {
@@ -68,8 +82,12 @@ app.notFound((c) => {
   return c.json({ error: 'Not Found', path: c.req.path }, 404)
 })
 
-const port = process.env.PORT || 4000
+const port = process.env.PORT || config.server.port || 4000
 console.log(`🚀 Server is running on http://localhost:${port}`)
+console.log(`📊 MCP Synthiepop enabled: ${config.mcp.synthiepop.enabled}`)
+if (config.mcp.synthiepop.enabled) {
+  console.log(`   Connected to: ${config.mcp.synthiepop.protocol}://${config.mcp.synthiepop.host}:${config.mcp.synthiepop.port}`)
+}
 
 serve({
   fetch: app.fetch,

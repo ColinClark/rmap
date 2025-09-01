@@ -1,0 +1,64 @@
+# RMAP Server Configuration
+server:
+  port: 4000
+  environment: development
+
+# MCP (Model Context Protocol) Configuration
+mcp:
+  synthiepop:
+    enabled: true
+    host: localhost
+    port: 8002
+    protocol: http
+    endpoints:
+      health: /health
+      execute: /mcp
+      schema: /mcp
+      databases: /mcp
+    connection:
+      timeout: 30000  # 30 seconds
+      maxRetries: 3
+      retryDelay: 1000  # 1 second
+    streaming:
+      enabled: true
+      format: sse  # Server-Sent Events
+    security:
+      # Add authentication details if needed
+      apiKey: ${MCP_API_KEY}  # Environment variable
+    
+# Database Configuration  
+database:
+  url: ${DATABASE_URL}
+  maxConnections: 20
+  
+# Tenant Configuration
+tenant:
+  isolation:
+    enabled: true
+    strategy: row-level  # row-level or schema-per-tenant
+  defaults:
+    queryLimit: 1000
+    cacheEnabled: true
+    cacheTTL: 300  # 5 minutes
+
+# Query Settings
+query:
+  maxExecutionTime: 60000  # 60 seconds
+  maxRowsReturned: 10000
+  dangerousKeywords:
+    - drop
+    - delete
+    - truncate
+    - alter
+    - create
+  validation:
+    enabled: true
+    strict: false  # Set to true in production
+
+# Logging
+logging:
+  level: info
+  queryLogging:
+    enabled: true
+    includeResults: false
+    includeTenant: true

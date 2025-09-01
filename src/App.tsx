@@ -9,6 +9,7 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { TenantSettings } from './pages/TenantSettings';
 import { RetailMediaWorkflow } from './workflows/RetailMediaWorkflow';
+import { DataQueryWorkflow } from './workflows/DataQueryWorkflow';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,6 +48,14 @@ export default function App() {
                 element={
                   <ProtectedRoute requiredPermission="retail_media">
                     <RetailMediaWorkflow />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="workflows/data-query"
+                element={
+                  <ProtectedRoute requiredPermission="data">
+                    <DataQueryWorkflow />
                   </ProtectedRoute>
                 }
               />

@@ -75,22 +75,26 @@ const demoTenant: Tenant = {
 }
 
 tenants.set('demo', demoTenant)
+tenants.set('demo-tenant-id', demoTenant) // Also register by ID
+tenants.set('test-tenant', demoTenant) // Add test-tenant alias
+tenants.set('test', demoTenant) // Add test alias
 
 // Tenant identification strategies
 export function identifyTenant(c: Context): string | null {
-  // 1. Check subdomain (e.g., acme.app.com)
-  const host = c.req.header('host')
-  if (host) {
-    const subdomain = host.split('.')[0]
-    if (subdomain && subdomain !== 'www' && subdomain !== 'api') {
-      return subdomain
-    }
-  }
-
-  // 2. Check custom header (for API clients)
+  // 1. Check custom header (for API clients) - HIGHEST PRIORITY
   const tenantHeader = c.req.header('X-Tenant-ID') || c.req.header('X-Tenant-Slug')
   if (tenantHeader) {
     return tenantHeader
+  }
+
+  // 2. Check subdomain (e.g., acme.app.com)
+  const host = c.req.header('host')
+  if (host) {
+    const subdomain = host.split('.')[0]
+    // Only use subdomain if it's not localhost or an IP
+    if (subdomain && subdomain !== 'www' && subdomain !== 'api' && subdomain !== 'localhost' && !subdomain.match(/^\d+$/)) {
+      return subdomain
+    }
   }
 
   // 3. Check JWT token claims
@@ -125,16 +129,20 @@ export async function tenantMiddleware(c: Context, next: Next) {
   const tenantId = identifyTenant(c)
   
   if (!tenantId) {
+    console.error('No tenant ID identified from request')
+    console.log('Headers:', c.req.header())
     throw new HTTPException(400, {
-      message: 'Tenant identification required',
+      message: 'Tenant identification required. Please provide X-Tenant-ID or X-Tenant-Slug header',
     })
   }
 
   const tenant = tenants.get(tenantId)
   
   if (!tenant) {
+    console.error(`Tenant not found: ${tenantId}`)
+    console.log('Available tenants:', Array.from(tenants.keys()))
     throw new HTTPException(404, {
-      message: 'Tenant not found',
+      message: `Tenant '${tenantId}' not found`,
     })
   }
 
