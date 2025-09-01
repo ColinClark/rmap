@@ -3,8 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Alert, AlertDescription } from './ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
+import { DataTable } from './DataTable';
 import { 
   PlayCircle, 
   Database, 
@@ -27,7 +27,6 @@ export function QueryBuilder({ onQueryResult, defaultQuery = '' }: QueryBuilderP
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState('query');
   const [connectionStatus, setConnectionStatus] = useState<'unknown' | 'connected' | 'disconnected'>('unknown');
 
   // Check MCP connection status
@@ -123,7 +122,6 @@ export function QueryBuilder({ onQueryResult, defaultQuery = '' }: QueryBuilderP
         };
         
         setResults(result);
-        setActiveTab('results');
         
         if (onQueryResult) {
           onQueryResult(result);
@@ -137,7 +135,6 @@ export function QueryBuilder({ onQueryResult, defaultQuery = '' }: QueryBuilderP
         }
 
         setResults(data);
-        setActiveTab('results');
         
         if (onQueryResult) {
           onQueryResult(data);
@@ -174,7 +171,6 @@ export function QueryBuilder({ onQueryResult, defaultQuery = '' }: QueryBuilderP
         data: data.schema,
         metadata: { type: 'schema' }
       });
-      setActiveTab('results');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -205,7 +201,6 @@ export function QueryBuilder({ onQueryResult, defaultQuery = '' }: QueryBuilderP
         data: data.databases,
         metadata: { type: 'databases' }
       });
-      setActiveTab('results');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -242,39 +237,8 @@ export function QueryBuilder({ onQueryResult, defaultQuery = '' }: QueryBuilderP
 
     // If it's query results
     if (Array.isArray(results.data) && results.data.length > 0) {
-      const columns = Object.keys(results.data[0]);
-      
-      return (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-border">
-            <thead>
-              <tr>
-                {columns.map((col) => (
-                  <th key={col} className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {results.data.slice(0, 100).map((row: any, idx: number) => (
-                <tr key={idx}>
-                  {columns.map((col) => (
-                    <td key={col} className="px-6 py-4 whitespace-nowrap text-sm">
-                      {JSON.stringify(row[col])}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {results.data.length > 100 && (
-            <div className="mt-4 text-sm text-muted-foreground">
-              Showing first 100 rows of {results.data.length}
-            </div>
-          )}
-        </div>
-      );
+      // Use DataTable component for tabular data
+      return <DataTable data={results.data} pageSize={25} />;
     }
 
     if (results.data && results.data.length === 0) {
@@ -313,164 +277,149 @@ export function QueryBuilder({ onQueryResult, defaultQuery = '' }: QueryBuilderP
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="query">Query</TabsTrigger>
-            <TabsTrigger value="results" disabled={!results}>
-              Results {results && results.metadata?.rowCount !== undefined && (
-                <Badge className="ml-2" variant="secondary">{results.metadata.rowCount}</Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="query" className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  SQL Query
-                </label>
-                <div className="flex gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={getDatabases}
-                    disabled={loading}
-                  >
-                    <Database className="h-4 w-4 mr-2" />
-                    Databases
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={getSchema}
-                    disabled={loading}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Schema
-                  </Button>
-                </div>
+      <CardContent className="space-y-6">
+        {/* Query Section */}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                SQL Query
+              </label>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={getDatabases}
+                  disabled={loading}
+                >
+                  <Database className="h-4 w-4 mr-2" />
+                  Databases
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={getSchema}
+                  disabled={loading}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  Schema
+                </Button>
               </div>
-              <Textarea
-                placeholder="Enter SQL query, e.g.: SELECT * FROM customers LIMIT 10"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="font-mono text-sm"
-                rows={6}
-              />
             </div>
+            <Textarea
+              placeholder="Enter SQL query, e.g.: SELECT * FROM customers LIMIT 10"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                // Execute query on Ctrl+Enter or Cmd+Enter
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                  e.preventDefault();
+                  if (!loading && query.trim()) {
+                    executeQuery();
+                  }
+                }
+              }}
+              className="font-mono text-sm"
+              rows={6}
+            />
+          </div>
 
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-            <div className="flex gap-2">
-              <Button 
-                onClick={executeQuery} 
-                disabled={loading || !query.trim()}
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={executeQuery} 
+              disabled={loading || !query.trim()}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <PlayCircle className="mr-2 h-4 w-4" />
+                  Execute Query
+                </>
+              )}
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}+Enter
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-muted-foreground">Example SQL Queries</h4>
+            <div className="space-y-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start text-xs font-mono"
+                onClick={() => setQuery("SELECT COUNT(*) FROM customers")}
               >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <PlayCircle className="mr-2 h-4 w-4" />
-                    Execute Query
-                  </>
-                )}
+                <MessageSquare className="h-3 w-3 mr-2" />
+                SELECT COUNT(*) FROM customers
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start text-xs font-mono"
+                onClick={() => setQuery("SELECT * FROM products ORDER BY revenue DESC LIMIT 5")}
+              >
+                <MessageSquare className="h-3 w-3 mr-2" />
+                SELECT * FROM products ORDER BY revenue DESC LIMIT 5
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start text-xs font-mono"
+                onClick={() => setQuery("SELECT segment, AVG(order_value) FROM customers GROUP BY segment")}
+              >
+                <MessageSquare className="h-3 w-3 mr-2" />
+                SELECT segment, AVG(order_value) FROM customers GROUP BY segment
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="justify-start text-xs font-mono"
+                onClick={() => setQuery("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")}
+              >
+                <MessageSquare className="h-3 w-3 mr-2" />
+                SELECT table_name FROM information_schema.tables
               </Button>
             </div>
+          </div>
+        </div>
 
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-muted-foreground">Example SQL Queries</h4>
-              <div className="space-y-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="justify-start text-xs font-mono"
-                  onClick={() => setQuery("SELECT COUNT(*) FROM customers")}
-                >
-                  <MessageSquare className="h-3 w-3 mr-2" />
-                  SELECT COUNT(*) FROM customers
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="justify-start text-xs font-mono"
-                  onClick={() => setQuery("SELECT * FROM products ORDER BY revenue DESC LIMIT 5")}
-                >
-                  <MessageSquare className="h-3 w-3 mr-2" />
-                  SELECT * FROM products ORDER BY revenue DESC LIMIT 5
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="justify-start text-xs font-mono"
-                  onClick={() => setQuery("SELECT segment, AVG(order_value) FROM customers GROUP BY segment")}
-                >
-                  <MessageSquare className="h-3 w-3 mr-2" />
-                  SELECT segment, AVG(order_value) FROM customers GROUP BY segment
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="justify-start text-xs font-mono"
-                  onClick={() => setQuery("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'")}
-                >
-                  <MessageSquare className="h-3 w-3 mr-2" />
-                  SELECT table_name FROM information_schema.tables
-                </Button>
+        {/* Results Section */}
+        {results && (
+          <div className="space-y-4 border-t pt-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                Results
+                {results.metadata?.rowCount !== undefined && (
+                  <Badge variant="secondary">{results.metadata.rowCount} rows</Badge>
+                )}
+              </h3>
+              <div className="flex gap-4 text-sm text-muted-foreground">
+                {results.metadata?.executionTime && (
+                  <span>Execution Time: {results.metadata.executionTime}ms</span>
+                )}
+                {results.metadata?.database && (
+                  <span>Database: {results.metadata.database}</span>
+                )}
               </div>
             </div>
-          </TabsContent>
-          
-          <TabsContent value="results" className="space-y-4">
-            {results && (
-              <>
-                <div className="flex justify-between items-center">
-                  <div className="flex gap-4 text-sm text-muted-foreground">
-                    {results.metadata?.rowCount !== undefined && (
-                      <span>Rows: {results.metadata.rowCount}</span>
-                    )}
-                    {results.metadata?.executionTime && (
-                      <span>Time: {results.metadata.executionTime}ms</span>
-                    )}
-                    {results.metadata?.database && (
-                      <span>Database: {results.metadata.database}</span>
-                    )}
-                  </div>
-                  {results.data && Array.isArray(results.data) && results.data.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const blob = new Blob([JSON.stringify(results.data, null, 2)], { type: 'application/json' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'query-results.json';
-                        a.click();
-                      }}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Export JSON
-                    </Button>
-                  )}
-                </div>
-                
-                <div className="border rounded-lg p-4 max-h-96 overflow-auto">
-                  {formatResults()}
-                </div>
-              </>
-            )}
-          </TabsContent>
-        </Tabs>
+            
+            {formatResults()}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

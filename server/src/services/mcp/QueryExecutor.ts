@@ -60,8 +60,17 @@ export class QueryExecutor {
         resultsLength: result.results?.length,
         hasData: !!result.data,
         hasRows: !!result.rows,
+        hasError: !!result.error,
         keys: Object.keys(result).slice(0, 10)
       });
+      
+      // Check if the result is an error
+      if (result.error || result.success === false) {
+        return {
+          success: false,
+          error: result.error || 'Query execution failed'
+        };
+      }
       
       // Handle the response format from MCP server
       // The response has: sql, results, row_count, execution_time_ms, columns

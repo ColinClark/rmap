@@ -77,8 +77,17 @@ export class SSEParser {
       console.log('SSEParser.extractSQLResult: Text content type:', typeof textContent, 'length:', textContent?.length);
       console.log('SSEParser.extractSQLResult: First 200 chars of text:', textContent?.substring(0, 200));
       
-      // Check if the text content is JSONL (multiple JSON objects separated by newlines)
+      // Check if the text content is an error message
       if (typeof textContent === 'string') {
+        // Check if it's an error message
+        if (textContent.startsWith('Error:') || textContent.includes('Binder Error:') || textContent.includes('SQL execution failed:')) {
+          console.log('SSEParser.extractSQLResult: Detected error message');
+          return {
+            error: textContent,
+            success: false
+          };
+        }
+        
         // Check if it's JSONL format (has multiple JSON objects on separate lines)
         if (textContent.includes('\n') && textContent.includes('"type": "metadata"')) {
           console.log('SSEParser.extractSQLResult: Detected JSONL format');
