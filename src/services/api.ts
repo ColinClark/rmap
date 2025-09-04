@@ -1,19 +1,41 @@
+import { generateCorrelationId, storeServerCorrelationId } from './correlationId';
+
 // API client for backend communication
 const API_BASE = 'http://localhost:4000/api'
 
-// Helper function for API calls
+// Helper function for API calls with correlation ID
 async function apiCall(endpoint: string, options: RequestInit = {}) {
+  // Generate correlation ID for this request
+  const correlationId = generateCorrelationId();
+  
+  // Get tenant context if available
+  const tenantId = localStorage.getItem('tenantId');
+  const sessionId = sessionStorage.getItem('sessionId');
+  
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
+      'X-Correlation-ID': correlationId,
+      ...(tenantId && { 'X-Tenant-ID': tenantId }),
+      ...(sessionId && { 'X-Session-ID': sessionId }),
       ...options.headers,
     },
     credentials: 'include',
   })
   
+  // Store server's correlation ID if provided
+  const serverCorrelationId = response.headers.get('X-Correlation-ID');
+  if (serverCorrelationId) {
+    storeServerCorrelationId(serverCorrelationId);
+    
+    // Log correlation for debugging
+    console.debug(`Request ${correlationId} -> Server ${serverCorrelationId}`);
+  }
+  
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+    console.error(`API Error [${correlationId}]:`, error);
     throw new Error(error.error || `API Error: ${response.status}`)
   }
   

@@ -1,0 +1,37 @@
+name: "Prepare tooling"
+description: "Installs required dependencies to build and deploy."
+
+runs:
+  using: "composite"
+
+  steps:
+    - name: Setup Node.js environment
+      uses: actions/setup-node@v4.3.0
+      with:
+        node-version-file: ./package.json
+        cache: "npm"
+        cache-dependency-path: ./package-lock.json
+
+    - name: Install dependencies
+      shell: bash
+      working-directory: ./
+      run: npm install --include=dev
+
+    - name: Setup CDK environment
+      uses: actions/setup-node@v4.3.0
+      with:
+        node-version-file: ./cdk/package.json
+        cache: "npm"
+        cache-dependency-path: ./cdk/package-lock.json
+
+    - name: Install CDK dependencies
+      shell: bash
+      working-directory: ./cdk
+      run: npm install --include=dev
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3.10.0
+      with:
+        install: true
+        use: true
+        version: v0.21.2

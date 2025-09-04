@@ -24,7 +24,7 @@ import {
   Calendar,
   Info
 } from 'lucide-react';
-import { CampaignData, Strategy } from '../App';
+import type { CampaignData, Strategy } from '../types';
 
 interface StrategyGeneratorProps {
   data: CampaignData;

@@ -2,8 +2,8 @@ import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
-import { z } from 'zod'
-import { zValidator } from '@hono/zod-validator'
+// import { z } from 'zod'
+// import { zValidator } from '@hono/zod-validator'
 import * as dotenv from 'dotenv'
 
 // Load environment variables
@@ -21,13 +21,17 @@ import { integrationRoutes } from './routes/integrations'
 import { tenantRoutes } from './routes/tenant'
 import queryRoutes from './routes/query'
 import testMcpRoutes from './routes/test-mcp'
+import { cohort } from './routes/cohort'
 
 // Import middleware
 import { tenantMiddleware, tenantRateLimitMiddleware } from './middleware/tenant'
+import { requestContextMiddleware } from './middleware/requestContext'
 
 const app = new Hono()
 
 // Global Middleware
+// Request context should be first to capture all logs
+app.use('*', requestContextMiddleware)
 app.use('*', logger())
 app.use('*', cors({
   origin: ['http://localhost:3000', 'http://localhost:5173', 'https://*.yourdomain.com'],
@@ -67,6 +71,7 @@ app.route('/api/campaign', campaignRoutes)
 app.route('/api/analytics', analyticsRoutes)
 app.route('/api/integrations', integrationRoutes)
 app.route('/api/query', queryRoutes)
+app.route('/api/cohort', cohort)
 
 // Test MCP routes (no tenant required for testing)
 app.route('/test-mcp', testMcpRoutes)

@@ -1,0 +1,35 @@
+name: CI/CD - deploy to STAGE & PROD
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - README.md
+
+jobs:
+  code_checks:
+    uses: ./.github/workflows/code_checks.yml
+
+  deploy-stage:
+    if: false # disabled until new account is ready
+    needs: code_checks
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/deploy-branch.yml
+    with:
+      environment: STAGE
+      account_id: TODO_CHANGE
+      region: eu-central-1
+
+  deploy-prod:
+    needs: code_checks
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/deploy-branch.yml
+    with:
+      environment: PROD
+      account_id: 910148267211
+      region: eu-central-1

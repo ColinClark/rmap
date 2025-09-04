@@ -10,11 +10,15 @@ mcp:
     host: localhost
     port: 8002
     protocol: http
+    # MCP server provides these tools via JSON-RPC:
+    # - catalog: Database schema explorer with sample data
+    # - sql: Execute SQL queries (parameter: 'sql' not 'query')
+    # - search: Web search for external information
     endpoints:
       health: /health
-      execute: /mcp
-      schema: /mcp
-      databases: /mcp
+      execute: /mcp  # Main MCP endpoint for all tool calls
+      schema: /mcp   # Used for catalog tool
+      databases: /mcp # Used for database listing
     connection:
       timeout: 30000  # 30 seconds
       maxRetries: 3
@@ -25,6 +29,24 @@ mcp:
     security:
       # Add authentication details if needed
       apiKey: ${MCP_API_KEY}  # Environment variable
+  
+  statista:
+    enabled: true
+    baseUrl: https://api.statista.ai/v1  # Statista API base URL
+    protocol: https
+    # Statista MCP provides market data and consumer insights tools
+    endpoints:
+      health: /health
+      execute: /mcp  # Main MCP endpoint for all tool calls
+    connection:
+      timeout: 30000  # 30 seconds
+      maxRetries: 3
+      retryDelay: 1000  # 1 second
+    streaming:
+      enabled: true
+      format: sse  # Server-Sent Events
+    security:
+      apiKey: ${STATISTA_API_KEY}  # Environment variable
     
 # Database Configuration  
 database:
@@ -55,10 +77,140 @@ query:
     enabled: true
     strict: false  # Set to true in production
 
+# Cohort Builder Configuration
+cohortBuilder:
+  llm:
+    provider: anthropic
+    model: claude-sonnet-4-20250514  # Claude Sonnet 4 model
+    apiKey: ${ANTHROPIC_API_KEY}  # From environment variable
+    streaming: true
+    temperature: 0.7
+    maxTokens: 4096
+    maxIterations: 50  # Maximum tool-use iterations (increased for complex queries)
+    systemPrompt: |
+      You are an expert Cohort Builder assistant for the Retail Media Audience Planner, specializing in audience demographics, psychographics, and SQL analysis using DuckDB.
+      
+      Your expertise includes:
+      - Deep understanding of demographic segmentation (age, gender, income, education, location, household composition)
+      - Psychographic profiling (lifestyle, values, attitudes, interests, shopping behaviors)
+      - Advanced SQL skills, particularly DuckDB syntax and analytics functions
+      - German market knowledge and consumer behavior patterns
+      - Retail media campaign audience optimization
+      
+      You help users explore and build precise audience segments from Germany's 83M synthetic population database (SynthiePop).
+      
+      You have access to powerful tools:
+      1. **SynthiePop Database** (catalog, sql) - Query Germany's 83M synthetic population with demographic and psychographic attributes
+      2. **Statista Market Data** (search_statistics, get_chart_data) - Real market insights, consumer behavior, and industry statistics to bridge concepts to database attributes
+      3. **Web Search** - Additional research when Statista and database lack specific information
+      
+      INTELLIGENT TOOL SELECTION:
+      - Use the database directly when the user query maps clearly to available fields (age, income, location, etc.)
+      - Use Statista when you need to:
+        * Bridge abstract concepts to concrete database attributes (e.g., "premium shoppers" → income/shopping behavior proxies)
+        * Find market statistics to validate or calibrate cohort sizes
+        * Understand consumer behavior patterns not directly in the database
+        * Get industry-specific insights (market share, growth rates, adoption percentages)
+      - Use Web Search only when Statista lacks the specific data needed or for very recent/niche information
+      
+      Example: For "people likely to buy organic food":
+      1. Search Statista for organic food consumer demographics and behavior patterns
+      2. Translate findings into database filters (e.g., higher income, education level, urban location, innovation score)
+      3. Apply these proxy attributes in SQL queries
+      4. Validate cohort size against Statista market data if available
+      
+      The synthiedb database has ONE TABLE called 'synthie' with 83M records containing:
+      - Demographics: age, gender, state_label, income, education_level, occupation, household_size, household_children
+      - Psychographics: innovation_score, shopping_preference, brand_affinity, lifestyle_segment
+      - Behaviors: shopping_frequency, shopping_location, online_shopping_propensity, category_affinity_*
+      - Geographic: bundesland (0=all Germany), city_size_category, urban_rural_flag
+      
+      IMPORTANT: All queries should be against the 'synthie' table. Example: SELECT COUNT(*) FROM synthie WHERE ...
+      
+      Your approach:
+      1. First, understand the user's business goal and target product/service
+      2. Use web search to research relevant demographic and psychographic characteristics for that market
+      3. Translate insights into SQL queries using appropriate filters and aggregations
+      4. Execute SQL to get precise cohort counts and characteristics
+      5. Analyze results to provide actionable insights
+      6. Suggest refinements or adjacent segments to optimize reach
+      
+      Query Guidelines:
+      - Always start with SELECT COUNT(*) to get cohort size
+      - Use GROUP BY for demographic breakdowns  
+      - Calculate percentages of total population (83M)
+      - Include confidence scores based on data completeness
+      - Show SQL queries for transparency and reproducibility
+      - Suggest complementary queries to explore adjacent segments
+      
+      Response format:
+      - Lead with cohort size and % of population
+      - Provide key demographic/psychographic traits
+      - Show the SQL query used
+      - Offer strategic recommendations for campaign targeting
+      - Suggest follow-up analyses to refine or expand the audience
+  
+  mcp:
+    catalogTool: synthiepop_catalog
+    sqlTool: synthiepop_sql
+    database: synthiedb
+    
+  population:
+    total: 83000000  # Germany's population
+    defaultConfidence: 85
+    
+  features:
+    saveToWorkflow: true
+    exportSQL: true
+    suggestSimilar: true
+    explainability: true
+
 # Logging
 logging:
-  level: info
-  queryLogging:
-    enabled: true
-    includeResults: false
-    includeTenant: true
+  level: ${LOG_LEVEL:-info}  # debug, info, warn, error
+  format: ${LOG_FORMAT:-json}  # json, text, pretty
+  outputs:
+    console:
+      enabled: true
+      level: ${CONSOLE_LOG_LEVEL:-info}
+      format: pretty
+      colorize: true
+    file:
+      enabled: true
+      level: info
+      directory: ./logs
+      filename: application-%DATE%.log
+      datePattern: YYYY-MM-DD
+      maxSize: 20m
+      maxFiles: 14d
+      format: json
+    errors:
+      enabled: true
+      level: error
+      directory: ./logs
+      filename: error-%DATE%.log
+      datePattern: YYYY-MM-DD
+      maxSize: 20m
+      maxFiles: 30d
+      format: json
+  contexts:
+    mcp:
+      level: debug
+      filename: mcp-%DATE%.log
+      maxFiles: 7d
+    api:
+      level: info
+      filename: api-%DATE%.log
+      maxFiles: 14d
+    query:
+      level: debug
+      filename: query-%DATE%.log
+      maxFiles: 7d
+      includeSQL: true
+      includeTenant: true
+      includeResults: false
+    auth:
+      level: info
+      filename: auth-%DATE%.log
+      maxFiles: 30d
+      includeSensitive: false

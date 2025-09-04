@@ -5,9 +5,7 @@ import { CohortBuilder } from '../components/CohortBuilder';
 import { AudienceRefinement } from '../components/AudienceRefinement';
 import { StrategyGenerator } from '../components/StrategyGenerator';
 import { ComparativeDashboard } from '../components/ComparativeDashboard';
-import { CollaborationPanel } from '../components/CollaborationPanel';
 import { PerformanceMonitoring } from '../components/PerformanceMonitoring';
-import { QueryBuilder } from '../components/QueryBuilder';
 import { Progress } from '../components/ui/progress';
 import { Users, Package, Building2, Database } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -375,7 +373,6 @@ export interface CampaignData {
 const steps = [
   'Brand & Product Selection',
   'Campaign Setup',
-  'Data Query',
   'Cohort Builder',
   'Audience Refinement',
   'Strategy Generator',
@@ -455,8 +452,10 @@ export function RetailMediaWorkflow() {
   };
 
   const nextStep = () => {
+    console.log('nextStep called, current:', currentStep, 'max:', steps.length - 1);
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
+      console.log('Moving to step:', currentStep + 1);
     }
   };
 
@@ -471,39 +470,34 @@ export function RetailMediaWorkflow() {
   };
 
   const renderCurrentStep = () => {
+    console.log('renderCurrentStep called with step:', currentStep);
     switch (currentStep) {
       case 0:
+        console.log('Rendering BrandProductSelection');
         return <BrandProductSelection data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} />;
       case 1:
+        console.log('Rendering CampaignSetup');
         return <CampaignSetup data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
       case 2:
-        return (
-          <div className="space-y-6">
-            <QueryBuilder 
-              onQueryResult={(data) => {
-                console.log('Query results:', data);
-                // You can update campaign data with query results if needed
-              }}
-            />
-            <div className="flex justify-between">
-              <Button onClick={prevStep} variant="outline">Previous</Button>
-              <Button onClick={nextStep}>Next</Button>
-            </div>
-          </div>
-        );
-      case 3:
+        console.log('Rendering CohortBuilder');
         return <CohortBuilder data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
-      case 4:
+      case 3:
+        console.log('Rendering AudienceRefinement');
         return <AudienceRefinement data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
-      case 5:
+      case 4:
+        console.log('Rendering StrategyGenerator');
         return <StrategyGenerator data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
-      case 6:
+      case 5:
+        console.log('Rendering ComparativeDashboard');
         return <ComparativeDashboard data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
+      case 6:
+        console.log('Rendering CampaignExport');
+        return <CampaignExport data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
       case 7:
-        return <CollaborationPanel data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
-      case 8:
+        console.log('Rendering PerformanceMonitoring');
         return <PerformanceMonitoring data={campaignData} onUpdate={updateCampaignData} onPrev={prevStep} />;
       default:
+        console.log('No component for step:', currentStep);
         return null;
     }
   };

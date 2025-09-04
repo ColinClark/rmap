@@ -5,6 +5,7 @@ import { Textarea } from './ui/textarea';
 import { Alert, AlertDescription } from './ui/alert';
 import { Badge } from './ui/badge';
 import { DataTable } from './DataTable';
+import { generateCorrelationId, storeServerCorrelationId } from '../services/correlationId';
 import { 
   PlayCircle, 
   Database, 
@@ -36,7 +37,8 @@ export function QueryBuilder({ onQueryResult, defaultQuery = '' }: QueryBuilderP
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'X-Tenant-ID': localStorage.getItem('tenantId') || 'test-tenant'
+          'X-Tenant-ID': localStorage.getItem('tenantId') || 'test-tenant',
+          'X-Correlation-ID': generateCorrelationId()
         }
       });
 
@@ -62,13 +64,17 @@ export function QueryBuilder({ onQueryResult, defaultQuery = '' }: QueryBuilderP
     setLoading(true);
     setError(null);
     
+    const correlationId = generateCorrelationId();
+    console.debug(`Executing query [${correlationId}]:`, query.substring(0, 100));
+    
     try {
       const response = await fetch('/api/query/execute', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'X-Tenant-ID': localStorage.getItem('tenantId') || 'demo'
+          'X-Tenant-ID': localStorage.getItem('tenantId') || 'demo',
+          'X-Correlation-ID': correlationId
         },
         body: JSON.stringify({ query })
       });
@@ -151,11 +157,13 @@ export function QueryBuilder({ onQueryResult, defaultQuery = '' }: QueryBuilderP
   const getSchema = async () => {
     setLoading(true);
     try {
+      const correlationId = generateCorrelationId();
       const response = await fetch('/api/query/schema', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'X-Tenant-ID': localStorage.getItem('tenantId') || 'test-tenant'
+          'X-Tenant-ID': localStorage.getItem('tenantId') || 'test-tenant',
+          'X-Correlation-ID': correlationId
         }
       });
 
@@ -181,11 +189,13 @@ export function QueryBuilder({ onQueryResult, defaultQuery = '' }: QueryBuilderP
   const getDatabases = async () => {
     setLoading(true);
     try {
+      const correlationId = generateCorrelationId();
       const response = await fetch('/api/query/databases', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'X-Tenant-ID': localStorage.getItem('tenantId') || 'test-tenant'
+          'X-Tenant-ID': localStorage.getItem('tenantId') || 'test-tenant',
+          'X-Correlation-ID': correlationId
         }
       });
 

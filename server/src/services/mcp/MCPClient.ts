@@ -1,13 +1,14 @@
-import { Tenant } from '../../types/tenant';
+// import { Tenant } from '../../types/tenant'; // Not used
 import configLoader, { MCPConfig } from '../config/ConfigLoader';
 import { SSEParser } from './SSEParser';
+import { mcpLogger } from '../logger';
 
-interface MCPResponse {
-  success?: boolean;
-  data?: any;
-  error?: string;
-  message?: string;
-}
+// interface MCPResponse {
+//   success?: boolean;
+//   data?: any;
+//   error?: string;
+//   message?: string;
+// } // Not currently used
 
 export class MCPClient {
   private baseUrl: string;
@@ -32,7 +33,7 @@ export class MCPClient {
       });
       return response.ok;
     } catch (error) {
-      console.error('MCP server health check failed:', error);
+      mcpLogger.error('Server health check failed', error);
       return false;
     }
   }
@@ -88,7 +89,7 @@ export class MCPClient {
       // Fallback to JSON parsing
       return JSON.parse(responseText);
     } catch (error) {
-      console.error('Error fetching MCP schema:', error);
+      mcpLogger.error('Error fetching schema', error);
       throw error;
     }
   }
@@ -116,7 +117,7 @@ export class MCPClient {
 
       return await response.json();
     } catch (error) {
-      console.error('Error listing databases:', error);
+      mcpLogger.error('Error listing databases', error);
       throw error;
     }
   }
@@ -148,7 +149,7 @@ export class MCPClient {
         id: Date.now()
       };
 
-      console.log('MCP Request:', {
+      mcpLogger.debug('Request details', {
         url: `${this.baseUrl}${this.config.endpoints.execute}`,
         body
       });
@@ -161,7 +162,7 @@ export class MCPClient {
       });
 
       const responseText = await response.text();
-      console.log('MCP Raw Response length:', responseText.length, 'bytes');
+      mcpLogger.debug(`Raw response length: ${responseText.length} bytes`);
 
       if (!response.ok) {
         throw new Error(`MCP query failed: ${response.statusText} - ${responseText}`);
@@ -169,13 +170,13 @@ export class MCPClient {
 
       // Parse SSE format response
       if (responseText.includes('event:') || responseText.includes('\r\ndata:')) {
-        console.log('MCPClient: Detected SSE format response');
+        mcpLogger.debug('Detected SSE format response');
         
         const sseResult = SSEParser.parseSSEResponse(responseText);
         if (sseResult) {
           const sqlResult = SSEParser.extractSQLResult(sseResult);
           
-          console.log('MCPClient: Extracted SQL result:', {
+          mcpLogger.debug('Extracted SQL result', {
             hasResults: !!sqlResult?.results,
             resultsLength: sqlResult?.results?.length,
             rowCount: sqlResult?.row_count,
@@ -184,7 +185,7 @@ export class MCPClient {
           
           return sqlResult;
         } else {
-          console.error('MCPClient: Could not parse SSE response');
+          mcpLogger.error('Could not parse SSE response');
           throw new Error('Failed to parse SSE response from MCP server');
         }
       }
@@ -197,11 +198,11 @@ export class MCPClient {
         }
         return jsonResponse.result || jsonResponse;
       } catch (parseError) {
-        console.error('Failed to parse MCP response as JSON');
+        mcpLogger.error('Failed to parse MCP response as JSON');
         throw new Error('Invalid response from MCP server');
       }
     } catch (error) {
-      console.error('Error executing query via MCP:', error);
+      mcpLogger.error('Error executing query via MCP', error);
       throw error;
     }
   }

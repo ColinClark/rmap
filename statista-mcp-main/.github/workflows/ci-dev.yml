@@ -1,0 +1,17 @@
+name: CI/CD - deploy to DEV
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  deploy-dev:
+    if: github.event.label.name == 'deploy-DEV'
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/deploy-branch.yml
+    with:
+      environment: DEV
+      account_id: 697244795087
+      region: eu-central-1

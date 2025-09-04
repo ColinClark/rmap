@@ -8,9 +8,32 @@ interface MCPConfig {
   port: number;
   protocol: string;
   endpoints: {
-    catalog: string;
-    query: string;
-    stream: string;
+    health: string;
+    execute: string;
+    schema: string;
+    databases: string;
+  };
+  connection: {
+    timeout: number;
+    maxRetries: number;
+    retryDelay: number;
+  };
+  streaming: {
+    enabled: boolean;
+    format: string;
+  };
+  security?: {
+    apiKey?: string;
+  };
+}
+
+interface StatistaMCPConfig {
+  enabled: boolean;
+  baseUrl: string;
+  protocol: string;
+  endpoints: {
+    health: string;
+    execute: string;
   };
   connection: {
     timeout: number;
@@ -33,6 +56,7 @@ interface ServerConfig {
   };
   mcp: {
     synthiepop: MCPConfig;
+    statista?: StatistaMCPConfig;
   };
   database: {
     url: string;
@@ -58,13 +82,70 @@ interface ServerConfig {
       strict: boolean;
     };
   };
+  cohortBuilder: {
+    llm: {
+      provider: string;
+      model: string;
+      apiKey?: string;
+      streaming: boolean;
+      temperature: number;
+      maxTokens: number;
+      systemPrompt: string;
+      maxIterations?: number;
+    };
+    mcp: {
+      catalogTool: string;
+      sqlTool: string;
+      database: string;
+    };
+    population: {
+      total: number;
+      defaultConfidence: number;
+    };
+    features: {
+      saveToWorkflow: boolean;
+      exportSQL: boolean;
+      suggestSimilar: boolean;
+      explainability: boolean;
+    };
+  };
   logging: {
     level: string;
+    format?: string;
     queryLogging: {
       enabled: boolean;
       includeResults: boolean;
       includeTenant: boolean;
     };
+    outputs?: {
+      console?: {
+        enabled: boolean;
+        level?: string;
+        format?: string;
+        colorize?: boolean;
+      };
+      file?: {
+        enabled: boolean;
+        level?: string;
+        format?: string;
+        directory: string;
+        filename: string;
+        datePattern: string;
+        maxSize: string;
+        maxFiles: string;
+      };
+      errors?: {
+        enabled: boolean;
+        level?: string;
+        format?: string;
+        directory: string;
+        filename: string;
+        datePattern: string;
+        maxSize: string;
+        maxFiles: string;
+      };
+    };
+    contexts?: Record<string, any>;
   };
 }
 
@@ -120,6 +201,11 @@ class ConfigLoader {
     return config.mcp.synthiepop;
   }
 
+  getStatistaMCPConfig(): StatistaMCPConfig | undefined {
+    const config = this.getConfig();
+    return config.mcp.statista;
+  }
+
   private getDefaultConfig(): ServerConfig {
     return {
       server: {
@@ -133,9 +219,10 @@ class ConfigLoader {
           port: 8002,
           protocol: 'http',
           endpoints: {
-            catalog: '/catalog',
-            query: '/query',
-            stream: '/query/stream'
+            health: '/health',
+            execute: '/mcp',
+            schema: '/mcp',
+            databases: '/mcp'
           },
           connection: {
             timeout: 30000,
@@ -172,6 +259,81 @@ class ConfigLoader {
           strict: false
         }
       },
+      cohortBuilder: {
+        llm: {
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-20250514',
+          apiKey: process.env.ANTHROPIC_API_KEY,
+          streaming: true,
+          temperature: 0.7,
+          maxTokens: 4096,
+          maxIterations: 20,
+          systemPrompt: `You are an expert Cohort Builder assistant for the Retail Media Audience Planner, specializing in audience demographics, psychographics, and SQL analysis using DuckDB.
+
+Your expertise includes:
+- Deep understanding of demographic segmentation (age, gender, income, education, location, household composition)
+- Psychographic profiling (lifestyle, values, attitudes, interests, shopping behaviors)
+- Advanced SQL skills, particularly DuckDB syntax and analytics functions
+- German market knowledge and consumer behavior patterns
+- Retail media campaign audience optimization
+
+You help users explore and build precise audience segments from Germany's 83M synthetic population database (SynthiePop).
+
+You have access to powerful tools:
+1. **SynthiePop Database** (catalog, sql) - Query Germany's 83M synthetic population
+2. **Statista Market Data** (search_statistics, get_chart_data) - Bridge concepts to database attributes
+3. **Web Search** - For additional research when needed
+
+INTELLIGENT TOOL SELECTION:
+- Use database directly for clear demographic queries
+- Use Statista to bridge abstract concepts to concrete attributes
+- Use Statista for market validation and consumer insights
+- Web Search only when Statista lacks specific data
+
+The synthiedb database has ONE TABLE called 'synthie' with 83M records containing:
+- Demographics: age, gender, state_label, income, education_level, occupation, household_size, household_children
+- Psychographics: innovation_score, shopping_preference, brand_affinity, lifestyle_segment
+- Behaviors: shopping_frequency, shopping_location, online_shopping_propensity, category_affinity_*
+- Geographic: bundesland (0=all Germany), city_size_category, urban_rural_flag
+
+IMPORTANT: All queries should be against the 'synthie' table. Example: SELECT COUNT(*) FROM synthie WHERE ...
+
+Your approach:
+1. First, understand the user's business goal and target product/service
+2. Translate insights into SQL queries using appropriate filters and aggregations
+3. Execute SQL to get precise cohort counts and characteristics
+4. Analyze results to provide actionable insights
+5. Suggest refinements or adjacent segments to optimize reach
+
+Query Guidelines:
+- Always use the 'synthie' table for all queries
+- Start with SELECT COUNT(*) FROM synthie to get cohort size
+- Use GROUP BY for demographic breakdowns
+- Calculate percentages of total population (83M)
+- Show SQL queries for transparency
+
+Response format:
+- Lead with cohort size and % of population
+- Provide key demographic/psychographic traits
+- Show the SQL query used
+- Offer strategic recommendations`
+        },
+        mcp: {
+          catalogTool: 'synthiepop_catalog',
+          sqlTool: 'synthiepop_sql',
+          database: 'synthiedb'
+        },
+        population: {
+          total: 83000000,
+          defaultConfidence: 85
+        },
+        features: {
+          saveToWorkflow: true,
+          exportSQL: true,
+          suggestSimilar: true,
+          explainability: true
+        }
+      },
       logging: {
         level: 'info',
         queryLogging: {
@@ -185,4 +347,4 @@ class ConfigLoader {
 }
 
 export default ConfigLoader.getInstance();
-export { MCPConfig, ServerConfig };
+export { MCPConfig, StatistaMCPConfig, ServerConfig };

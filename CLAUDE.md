@@ -232,3 +232,4 @@ describe('Campaign API', () => {
 3. Create owner user account
 4. Initialize default settings
 5. Send welcome email with setup instructions
+- remember to use the structured logging system

@@ -1,10 +1,12 @@
+import { mcpLogger } from '../logger';
+
 export class SSEParser {
   static parseSSEResponse(responseText: string): any {
     // Handle both \n and \r\n line endings
     const lines = responseText.split(/\r?\n/);
     const events: any[] = [];
     
-    console.log(`SSEParser: Processing ${lines.length} lines`);
+    mcpLogger.debug(`SSEParser: Processing ${lines.length} lines`);
     
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -21,9 +23,9 @@ export class SSEParser {
           try {
             const data = JSON.parse(jsonStr);
             events.push({ type: eventType, data });
-            console.log(`SSEParser: Added event type '${eventType}'`);
+            mcpLogger.debug(`SSEParser: Added event type '${eventType}'`);
           } catch (e) {
-            console.error('SSEParser: Failed to parse event data:', jsonStr.substring(0, 100));
+            mcpLogger.error(`SSEParser: Failed to parse event data: ${jsonStr.substring(0, 100)}`);
           }
         }
       } else if (line.startsWith('data:')) {
@@ -39,49 +41,49 @@ export class SSEParser {
             
             // Log if this looks like a result
             if (data.id && data.result) {
-              console.log(`SSEParser: Found result with id ${data.id}`);
+              mcpLogger.debug(`SSEParser: Found result with id ${data.id}`);
             }
           } catch (e) {
-            console.error('SSEParser: Failed to parse data line:', jsonStr.substring(0, 100));
+            mcpLogger.error(`SSEParser: Failed to parse data line: ${jsonStr.substring(0, 100)}`);
           }
         }
       }
     }
     
-    console.log(`SSEParser: Parsed ${events.length} events`);
+    mcpLogger.debug(`SSEParser: Parsed ${events.length} events`);
     
     // Find the result message (should be the last meaningful event)
     for (let i = events.length - 1; i >= 0; i--) {
       const event = events[i];
       if (event.data?.id && event.data?.result) {
-        console.log(`SSEParser: Returning result from event ${i}`);
+        mcpLogger.debug(`SSEParser: Returning result from event ${i}`);
         return event.data;
       }
     }
     
-    console.log('SSEParser: No result found in events');
+    mcpLogger.debug('SSEParser: No result found in events');
     return null;
   }
   
   static extractSQLResult(sseResult: any): any {
     if (!sseResult || !sseResult.result) {
-      console.log('SSEParser.extractSQLResult: No result in sseResult');
+      mcpLogger.debug('SSEParser.extractSQLResult: No result in sseResult');
       return null;
     }
     
     const content = sseResult.result.content;
-    console.log('SSEParser.extractSQLResult: Content type:', typeof content, 'isArray:', Array.isArray(content));
+    mcpLogger.debug(`SSEParser.extractSQLResult: Content type: ${typeof content}, isArray: ${Array.isArray(content)}`);
     
     if (content && Array.isArray(content) && content[0]?.text) {
       const textContent = content[0].text;
-      console.log('SSEParser.extractSQLResult: Text content type:', typeof textContent, 'length:', textContent?.length);
-      console.log('SSEParser.extractSQLResult: First 200 chars of text:', textContent?.substring(0, 200));
+      mcpLogger.debug(`SSEParser.extractSQLResult: Text content type: ${typeof textContent}, length: ${textContent?.length}`);
+      mcpLogger.debug(`SSEParser.extractSQLResult: First 200 chars of text: ${textContent?.substring(0, 200)}`);
       
       // Check if the text content is an error message
       if (typeof textContent === 'string') {
         // Check if it's an error message
         if (textContent.startsWith('Error:') || textContent.includes('Binder Error:') || textContent.includes('SQL execution failed:')) {
-          console.log('SSEParser.extractSQLResult: Detected error message');
+          mcpLogger.debug('SSEParser.extractSQLResult: Detected error message');
           return {
             error: textContent,
             success: false
@@ -90,10 +92,10 @@ export class SSEParser {
         
         // Check if it's JSONL format (has multiple JSON objects on separate lines)
         if (textContent.includes('\n') && textContent.includes('"type": "metadata"')) {
-          console.log('SSEParser.extractSQLResult: Detected JSONL format');
+          mcpLogger.debug('SSEParser.extractSQLResult: Detected JSONL format');
           
           const lines = textContent.split('\n').filter(line => line.trim());
-          console.log(`SSEParser.extractSQLResult: Processing ${lines.length} JSONL lines`);
+          mcpLogger.debug(`SSEParser.extractSQLResult: Processing ${lines.length} JSONL lines`);
           
           const result: any = {
             results: [],
@@ -118,47 +120,47 @@ export class SSEParser {
                 result.columns = parsed.columns;
                 result.row_count = parsed.row_count;
                 result.truncated = parsed.truncated;
-                console.log(`SSEParser.extractSQLResult: Line ${i}: Parsed metadata - ${parsed.row_count} rows, ${parsed.columns?.length} columns`);
+                mcpLogger.debug(`SSEParser.extractSQLResult: Line ${i}: Parsed metadata - ${parsed.row_count} rows, ${parsed.columns?.length} columns`);
               } else if (parsed.type === 'completion') {
                 // This is the completion metadata
                 result.execution_time_ms = parsed.execution_time_ms;
                 result.actual_row_count = parsed.actual_row_count;
-                console.log(`SSEParser.extractSQLResult: Line ${i}: Parsed completion - ${parsed.actual_row_count} actual rows`);
+                mcpLogger.debug(`SSEParser.extractSQLResult: Line ${i}: Parsed completion - ${parsed.actual_row_count} actual rows`);
               } else {
                 // This is a data row (no type field means it's actual data)
                 result.results.push(parsed);
                 if (i < 3) {
-                  console.log(`SSEParser.extractSQLResult: Line ${i}: Added data row with ${Object.keys(parsed).length} fields`);
+                  mcpLogger.debug(`SSEParser.extractSQLResult: Line ${i}: Added data row with ${Object.keys(parsed).length} fields`);
                 }
               }
-            } catch (e) {
-              console.log(`SSEParser.extractSQLResult: Line ${i}: Failed to parse - ${e.message}`);
-              console.log(`SSEParser.extractSQLResult: Line ${i} content: ${line.substring(0, 100)}...`);
+            } catch (e: unknown) {
+              mcpLogger.error(`SSEParser.extractSQLResult: Line ${i}: Failed to parse - ${e instanceof Error ? e.message : String(e)}`);
+              mcpLogger.debug(`SSEParser.extractSQLResult: Line ${i} content: ${line.substring(0, 100)}...`);
             }
           }
           
-          console.log(`SSEParser.extractSQLResult: Parsed JSONL - ${result.results.length} rows`);
+          mcpLogger.debug(`SSEParser.extractSQLResult: Parsed JSONL - ${result.results.length} rows`);
           return result;
         }
         
         // Try to parse as single JSON object
         try {
           const parsed = JSON.parse(textContent);
-          console.log('SSEParser.extractSQLResult: Successfully parsed as single JSON');
+          mcpLogger.debug('SSEParser.extractSQLResult: Successfully parsed as single JSON');
           return parsed;
-        } catch (e) {
-          console.log('SSEParser.extractSQLResult: Parse error:', e.message);
+        } catch (e: unknown) {
+          mcpLogger.error(`SSEParser.extractSQLResult: Parse error: ${e instanceof Error ? e.message : String(e)}`);
           // If not JSON, return the text as is
           return textContent;
         }
       } else {
         // If it's already an object, return it
-        console.log('SSEParser.extractSQLResult: Content is already an object');
+        mcpLogger.debug('SSEParser.extractSQLResult: Content is already an object');
         return textContent;
       }
     }
     
-    console.log('SSEParser.extractSQLResult: Returning raw result');
+    mcpLogger.debug('SSEParser.extractSQLResult: Returning raw result');
     return sseResult.result;
   }
 }

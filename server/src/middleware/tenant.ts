@@ -11,7 +11,7 @@ export interface TenantContext {
 
 // Mock tenant store - replace with database
 const tenants = new Map<string, Tenant>()
-const users = new Map<string, TenantUser>()
+// const users = new Map<string, TenantUser>() // TODO: Implement user store
 
 // Initialize demo tenant
 const demoTenant: Tenant = {
@@ -90,9 +90,11 @@ export function identifyTenant(c: Context): string | null {
   // 2. Check subdomain (e.g., acme.app.com)
   const host = c.req.header('host')
   if (host) {
-    const subdomain = host.split('.')[0]
-    // Only use subdomain if it's not localhost or an IP
-    if (subdomain && subdomain !== 'www' && subdomain !== 'api' && subdomain !== 'localhost' && !subdomain.match(/^\d+$/)) {
+    // Remove port if present
+    const hostname = host.split(':')[0]
+    const subdomain = hostname.split('.')[0]
+    // Only use subdomain if it's not localhost or an IP and has multiple parts
+    if (subdomain && hostname.includes('.') && subdomain !== 'www' && subdomain !== 'api' && subdomain !== 'localhost' && !subdomain.match(/^\d+$/)) {
       return subdomain
     }
   }
@@ -119,6 +121,12 @@ export function identifyTenant(c: Context): string | null {
     if (tenantMatch) {
       return tenantMatch[1]
     }
+  }
+
+  // 6. Default to demo tenant for localhost development
+  const hostHeader = c.req.header('host')
+  if (hostHeader && (hostHeader.startsWith('localhost') || hostHeader.startsWith('127.0.0.1'))) {
+    return 'demo'
   }
 
   return null

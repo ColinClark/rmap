@@ -2,25 +2,25 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import { 
-  TenantSchema, 
-  TenantUserSchema,
-  TenantInvitationSchema,
+  // TenantSchema, 
+  // TenantUserSchema,
+  // TenantInvitationSchema,
   SUBSCRIPTION_PLANS,
   type Tenant,
   type TenantUser,
-  type TenantInvitation,
-  type UsageEvent,
-  type BillingEvent
+  type TenantInvitation
+  // type UsageEvent, // TODO: Track usage events  
+  // type BillingEvent // TODO: Implement billing
 } from '../types/tenant'
 import { requireTenantRole } from '../middleware/tenant'
 
 export const tenantRoutes = new Hono()
 
 // In-memory storage for demo (replace with database)
-const tenants = new Map<string, Tenant>()
+// const tenants = new Map<string, Tenant>() // TODO: Implement tenant store
 const invitations = new Map<string, TenantInvitation>()
-const usageEvents: UsageEvent[] = []
-const billingEvents: BillingEvent[] = []
+// const usageEvents: UsageEvent[] = [] // TODO: Track usage events
+// const billingEvents: BillingEvent[] = [] // TODO: Implement billing events
 
 // Get current tenant info
 tenantRoutes.get('/current', (c) => {
@@ -175,7 +175,7 @@ tenantRoutes.delete('/users/:userId',
   requireTenantRole('owner', 'admin'),
   (c) => {
     const userId = c.req.param('userId')
-    const tenant = c.get('tenant') as Tenant
+    // const tenant = c.get('tenant') as Tenant // TODO: Use for updating usage
     
     // In production, remove user from database
     // Update usage count
@@ -188,8 +188,8 @@ tenantRoutes.delete('/users/:userId',
 tenantRoutes.get('/usage', (c) => {
   const tenant = c.get('tenant') as Tenant
   
-  const now = new Date()
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  // const now = new Date() // TODO: Use for date calculations
+  // const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1) // TODO: Use for filtering
   
   return c.json({
     current: tenant.subscription.usage,
@@ -289,7 +289,7 @@ tenantRoutes.post('/billing/subscription',
 tenantRoutes.get('/activity',
   requireTenantRole('owner', 'admin'),
   (c) => {
-    const tenant = c.get('tenant') as Tenant
+    // const tenant = c.get('tenant') as Tenant // TODO: Filter by tenant
     
     // Mock activity logs
     const activities = [

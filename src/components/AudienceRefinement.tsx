@@ -32,7 +32,7 @@ import {
   MapPin,
   Sparkles
 } from 'lucide-react';
-import { CampaignData, SynthiePopData, PopulationFilters } from '../App';
+import type { CampaignData, SynthiePopData, PopulationFilters } from '../types';
 
 interface AudienceRefinementProps {
   data: CampaignData;
@@ -111,7 +111,8 @@ export function AudienceRefinement({ data, onUpdate, onNext, onPrev }: AudienceR
 
   const generateMockPopulationData = () => {
     const mockData: SynthiePopData[] = [];
-    const targetPopulation = Math.max(5000, data.directCohorts.population || 10000);
+    // Limit to 100 records until paging is implemented
+    const targetPopulation = 100;
 
     const occupations = [
       '72211', '25212', '51212', '43213', '71403', '11212', '93212', '61212',
@@ -145,7 +146,7 @@ export function AudienceRefinement({ data, onUpdate, onNext, onPrev }: AudienceR
         occupation: occupations[Math.floor(Math.random() * occupations.length)],
         educationLevel: educationLevels[Math.floor(Math.random() * educationLevels.length)],
         migrationBackground: Math.random() < 0.15 // ~15% have migration background
-      });
+      } as SynthiePopData);
     }
 
     onUpdate({ 

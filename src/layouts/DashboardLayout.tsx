@@ -61,7 +61,15 @@ export function DashboardLayout() {
                 {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </button>
               
-              <Link to="/dashboard" className="flex items-center space-x-3">
+              <Link 
+                to="/dashboard" 
+                className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+                onClick={(e) => {
+                  // Ensure navigation happens even if we're already on a child route
+                  e.preventDefault();
+                  navigate('/dashboard');
+                }}
+              >
                 <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-lg">
                   <TrendingUp className="w-5 h-5 text-primary" />
                 </div>

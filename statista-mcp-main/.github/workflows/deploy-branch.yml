@@ -1,0 +1,38 @@
+name: Deploy branch
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      account_id:
+        required: true
+        type: string
+      region:
+        type: string
+        required: false
+        default: eu-central-1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        working-directory: ./cdk
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: ./.github/actions/prepare-tooling
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ inputs.region }}
+          role-to-assume: arn:aws:iam::${{ inputs.account_id }}:role/GitHubActionRole-${{ vars.REPOSITORY_SLUG }}
+          role-session-name: OIDCSession-${{ github.sha }}
+      - run: npx cdk deploy --require-approval never "${{ inputs.environment }}/*"

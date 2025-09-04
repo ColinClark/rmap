@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
-import { AnalyticsDataSchema, type AnalyticsData } from '../types'
+import { type AnalyticsData } from '../types'
 
 export const analyticsRoutes = new Hono()
 
@@ -136,7 +136,7 @@ analyticsRoutes.post('/export',
     includeBreakdown: z.boolean().optional(),
   })),
   (c) => {
-    const { campaignIds, format, period } = c.req.valid('json')
+    const { campaignIds, format } = c.req.valid('json')
     
     // Mock export response
     const exportJob = {

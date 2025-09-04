@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { ChevronLeft, ChevronRight, Trophy, TrendingUp, Target, Shield, BarChart3, Info, Crown, HelpCircle, Calculator, Database, AlertTriangle, Sliders, BarChart2, ArrowUpDown, Lightbulb } from 'lucide-react';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ComposedChart, Line, Area } from 'recharts';
 import { Alert, AlertDescription } from './ui/alert';
-import { CampaignData } from '../App';
+import type { CampaignData } from '../types';
 
 interface ComparativeDashboardProps {
   data: CampaignData;
