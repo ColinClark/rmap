@@ -6,6 +6,7 @@ import { AudienceRefinement } from '../components/AudienceRefinement';
 import { StrategyGenerator } from '../components/StrategyGenerator';
 import { ComparativeDashboard } from '../components/ComparativeDashboard';
 import { PerformanceMonitoring } from '../components/PerformanceMonitoring';
+import { CollaborationPanel } from '../components/CollaborationPanel';
 import { Progress } from '../components/ui/progress';
 import { Users, Package, Building2, Database } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -491,8 +492,8 @@ export function RetailMediaWorkflow() {
         console.log('Rendering ComparativeDashboard');
         return <ComparativeDashboard data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
       case 6:
-        console.log('Rendering CampaignExport');
-        return <CampaignExport data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
+        console.log('Rendering CollaborationPanel (Campaign Export)');
+        return <CollaborationPanel data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
       case 7:
         console.log('Rendering PerformanceMonitoring');
         return <PerformanceMonitoring data={campaignData} onUpdate={updateCampaignData} onPrev={prevStep} />;

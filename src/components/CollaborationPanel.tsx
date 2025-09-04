@@ -28,7 +28,23 @@ import {
   PlayCircle,
   Upload
 } from 'lucide-react';
-import { CampaignData, TeamMember, Comment } from '../App';
+import type { CampaignData } from '../types';
+
+// Define missing types
+interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  avatar?: string;
+}
+
+interface Comment {
+  id: string;
+  author: TeamMember;
+  content: string;
+  timestamp: Date;
+  type?: 'comment' | 'decision' | 'approval';
+}
 
 interface CollaborationPanelProps {
   data: CampaignData;

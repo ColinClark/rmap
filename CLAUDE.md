@@ -50,8 +50,17 @@ The application is a multi-tenant SaaS platform with:
 2. **Dashboard** - Workflow grid with permission-based access
 3. **TenantSettings** - Organization management, billing, team, usage
 4. **Workflows**:
-   - RetailMediaWorkflow - Audience planning workflow
-   - (Other workflows ready for implementation)
+   - RetailMediaWorkflow - Complete 8-step campaign workflow
+
+#### Workflow Components (RetailMediaWorkflow)
+1. **BrandProductSelection** - Initial brand/product selection
+2. **CampaignSetup** - Campaign configuration (budget, timeline, objectives)
+3. **CohortBuilder** - AI-powered natural language audience segmentation
+4. **AudienceRefinement** - Demographic filtering and refinement
+5. **StrategyGenerator** - AI-driven strategy generation
+6. **ComparativeDashboard** - Strategy comparison and analysis
+7. **CollaborationPanel** - Campaign export and activation (formerly CampaignExport)
+8. **PerformanceMonitoring** - Real-time campaign tracking
 
 #### Component Organization
 ```
@@ -67,26 +76,42 @@ src/
 ├── contexts/          # React contexts
 │   ├── AuthContext.tsx
 │   └── TenantContext.tsx
-├── components/        # Reusable UI components (shadcn/ui)
-│   └── ui/           # Radix-based components
-└── services/          # API services
-    └── api.ts
+├── components/        # Reusable UI components
+│   ├── ui/           # shadcn/ui Radix-based components
+│   ├── CohortBuilder.tsx
+│   ├── AudienceRefinement.tsx
+│   └── [other workflow components]
+├── services/          # API services
+│   ├── api.ts       # Core API client
+│   └── correlationId.ts # Request tracking
+└── types/            # Centralized type definitions
+    └── index.ts      # Shared types across components
 ```
 
 ### Backend Architecture
 
 #### Middleware
 - **tenantMiddleware**: Identifies and validates tenant for every request
+- **requestContext**: Request context and correlation ID tracking
 - **tenantRateLimitMiddleware**: Enforces API usage limits
 - **requireTenantRole**: Role-based access control
 - **requireWorkflow**: Subscription-based workflow access
 
 #### Routes
 - `/api/tenant/*` - Organization management endpoints
+- `/api/cohort/*` - AI-powered cohort building with Claude integration
 - `/api/audience/*` - Audience segment management (tenant-scoped)
 - `/api/campaign/*` - Campaign operations (tenant-scoped)
 - `/api/analytics/*` - Analytics and reporting (tenant-scoped)
 - `/api/integrations/*` - External API integrations
+
+#### MCP (Model Context Protocol) Integrations
+- **SynthiePop MCP** - Access to 83M synthetic German population records
+  - Host: localhost:8002
+  - Tools: catalog, sql, search
+- **Statista MCP** - Market data and statistics
+  - URL: https://api.statista.ai/v1
+  - Tools: search-statistics, get-chart-data-by-id
 
 #### Data Models
 ```typescript
@@ -232,4 +257,30 @@ describe('Campaign API', () => {
 3. Create owner user account
 4. Initialize default settings
 5. Send welcome email with setup instructions
-- remember to use the structured logging system
+
+## Recent Updates & Known Issues
+
+### Recent Implementations
+- **Statista MCP Integration**: Full integration with market data API
+- **AI Cohort Builder**: Natural language processing with Claude Sonnet 4
+- **Request Context**: Correlation ID tracking across services
+- **Type Centralization**: Shared types in `src/types/index.ts`
+- **Auto-save Cohorts**: Automatic saving when SQL queries return results
+
+### Performance Optimizations
+- **AudienceRefinement**: Limited to 100 records (prevents browser hang)
+- **LLM Iterations**: Increased from 20 to 50 for complex queries
+- **SSE Streaming**: Real-time response streaming for chat interface
+
+### Known Issues & Fixes
+1. **Navigation Issues**: Fixed missing imports from '../App'
+2. **Component Naming**: CollaborationPanel (not CampaignExport)
+3. **Session Management**: Statista MCP session handled by server
+4. **Result Counting**: Fixed Statista search result display (items array)
+
+## Important Notes
+- Always use the structured logging system (Logger class)
+- Check for existing components before creating new ones
+- Types should be imported from `../types` not `../App`
+- Limit database queries to reasonable sizes for UI display
+- Use environment variables for all API keys and secrets
