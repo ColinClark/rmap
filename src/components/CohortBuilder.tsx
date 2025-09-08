@@ -93,7 +93,20 @@ export function CohortBuilder({ data, onUpdate, onNext, onPrev }: CohortBuilderP
   
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [currentCohort, setCurrentCohort] = useState<CohortSummary | null>(null);
+  const [currentCohort, setCurrentCohort] = useState<CohortSummary | null>({
+    size: 2450000,
+    percentageOfTotal: 2.95,
+    topTraits: [
+      { trait: 'Age 25-34', percentage: 45 },
+      { trait: 'Urban dwellers', percentage: 78 },
+      { trait: 'Tech-savvy', percentage: 82 }
+    ],
+    sqlQuery: `SELECT * FROM synthiepop_germany 
+WHERE age BETWEEN 25 AND 34 
+AND location = 'urban' 
+AND tech_affinity > 0.8`,
+    confidence: 85
+  });
   const [savedCohorts, setSavedCohorts] = useState<CohortSummary[]>([]);
   const [activeTab, setActiveTab] = useState('chat');
   const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set());
@@ -807,7 +820,7 @@ export function CohortBuilder({ data, onUpdate, onNext, onPrev }: CohortBuilderP
                     onClick={() => handleAction({ type: 'save', id: '1' })}
                   >
                     <Database className="h-4 w-4 mr-2" />
-                    Save to Campaign
+                    Save Cohort
                   </Button>
                   <Button 
                     variant="outline" 
