@@ -118,16 +118,53 @@ export async function tenantMiddleware(c: Context, next: Next) {
 
     // Get user from session/JWT
     let user: TenantUser | null = null
+    let userId: string | null = null
+
+    // Check for session cookie first (web app)
+    const cookie = c.req.header('Cookie')
+    if (cookie) {
+      const sessionMatch = cookie.match(/session=([^;]+)/)
+      if (sessionMatch) {
+        const sessionToken = sessionMatch[1]
+
+        // Look up session in database
+        const sessionsCollection = mongoService.getControlDB().collection('sessions')
+        const session = await sessionsCollection.findOne({
+          sessionToken,
+          expiresAt: { $gt: new Date() } // Check if session is not expired
+        })
+
+        if (session) {
+          userId = session.userId
+
+          // Update session last activity
+          await sessionsCollection.updateOne(
+            { sessionToken },
+            {
+              $set: {
+                lastActivity: new Date(),
+                updatedAt: new Date()
+              }
+            }
+          )
+        }
+      }
+    }
 
     // Check Authorization header for JWT
-    const authorization = c.req.header('Authorization')
-    if (authorization?.startsWith('Bearer ')) {
-      const token = authorization.substring(7)
+    if (!userId) {
+      const authorization = c.req.header('Authorization')
+      if (authorization?.startsWith('Bearer ')) {
+        const token = authorization.substring(7)
 
-      // TODO: Item 3 - Validate JWT and get user ID
-      // For now, we'll use a hardcoded user ID for demo
-      const userId = 'demo-user-id'
+        // TODO: Item 8 - Validate JWT and get user ID
+        // For now, we'll use a hardcoded user ID for demo
+        userId = 'demo-user-id'
+      }
+    }
 
+    // If we have a userId, look up the user
+    if (userId) {
       // Lookup user in tenant_users collection
       const tenantUsersCollection = mongoService.getControlDB().collection<TenantUser>('tenant_users')
       user = await tenantUsersCollection.findOne({
