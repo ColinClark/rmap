@@ -10,15 +10,16 @@ import { Tenant, TenantUser, SUBSCRIPTION_PLANS, SubscriptionPlan } from '../typ
 const logger = new Logger('TenantService')
 
 export class TenantService {
-  private tenantsCollection: Collection<Tenant>
-  private usersCollection: Collection<any>
-  private tenantUsersCollection: Collection<TenantUser>
+  private get tenantsCollection(): Collection<Tenant> {
+    return mongoService.getControlDB().collection<Tenant>('tenants')
+  }
 
-  constructor() {
-    const controlDB = mongoService.getControlDB()
-    this.tenantsCollection = controlDB.collection<Tenant>('tenants')
-    this.usersCollection = controlDB.collection('users')
-    this.tenantUsersCollection = controlDB.collection<TenantUser>('tenant_users')
+  private get usersCollection(): Collection<any> {
+    return mongoService.getControlDB().collection('users')
+  }
+
+  private get tenantUsersCollection(): Collection<TenantUser> {
+    return mongoService.getControlDB().collection<TenantUser>('tenant_users')
   }
 
   /**

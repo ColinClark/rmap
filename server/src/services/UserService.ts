@@ -40,15 +40,16 @@ export interface Session {
 }
 
 export class UserService {
-  private usersCollection: Collection<User>
-  private tenantUsersCollection: Collection<TenantUser>
-  private sessionsCollection: Collection<Session>
+  private get usersCollection(): Collection<User> {
+    return mongoService.getControlDB().collection<User>('users')
+  }
 
-  constructor() {
-    const controlDB = mongoService.getControlDB()
-    this.usersCollection = controlDB.collection<User>('users')
-    this.tenantUsersCollection = controlDB.collection<TenantUser>('tenant_users')
-    this.sessionsCollection = controlDB.collection<Session>('sessions')
+  private get tenantUsersCollection(): Collection<TenantUser> {
+    return mongoService.getControlDB().collection<TenantUser>('tenant_users')
+  }
+
+  private get sessionsCollection(): Collection<Session> {
+    return mongoService.getControlDB().collection<Session>('sessions')
   }
 
   /**

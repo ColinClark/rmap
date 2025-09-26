@@ -20,6 +20,7 @@ import { Logger } from './utils/logger'
 const appLogger = new Logger('Server')
 
 // Import routes
+import { authRoutes } from './routes/auth'
 import { audienceRoutes } from './routes/audience'
 import { campaignRoutes } from './routes/campaign'
 import { analyticsRoutes } from './routes/analytics'
@@ -55,16 +56,8 @@ app.get('/health', async (c) => {
   })
 })
 
-// Public auth routes (no tenant required)
-app.post('/auth/register', async (c) => {
-  // Handle tenant registration
-  return c.json({ message: 'Registration endpoint' })
-})
-
-app.post('/auth/login', async (c) => {
-  // Handle login
-  return c.json({ message: 'Login endpoint' })
-})
+// Auth routes (no tenant required)
+app.route('/auth', authRoutes)
 
 // Apply tenant middleware to all /api routes
 app.use('/api/*', tenantMiddleware)
