@@ -28,6 +28,8 @@ cd server
 npm install          # Install backend dependencies
 npm run dev          # Start backend dev server on port 4000
 npm run build        # Build backend for production
+npm run typecheck    # Run TypeScript type checking
+npm run start        # Start production server
 ```
 
 ## Architecture

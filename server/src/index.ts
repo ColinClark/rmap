@@ -13,6 +13,12 @@ dotenv.config()
 import configLoader from './services/config/ConfigLoader'
 const config = configLoader.loadConfig()
 
+// Import MongoDB service
+import { mongoService } from './services/mongodb'
+import { Logger } from './utils/logger'
+
+const appLogger = new Logger('Server')
+
 // Import routes
 import { audienceRoutes } from './routes/audience'
 import { campaignRoutes } from './routes/campaign'
@@ -39,9 +45,11 @@ app.use('*', cors({
 }))
 
 // Health check (public)
-app.get('/health', (c) => {
-  return c.json({ 
-    status: 'healthy', 
+app.get('/health', async (c) => {
+  const dbHealthy = await mongoService.healthCheck()
+  return c.json({
+    status: dbHealthy ? 'healthy' : 'degraded',
+    database: dbHealthy ? 'connected' : 'disconnected',
     timestamp: new Date().toISOString(),
     version: '1.0.0'
   })
@@ -88,13 +96,31 @@ app.notFound((c) => {
 })
 
 const port = process.env.PORT || config.server.port || 4000
-console.log(`🚀 Server is running on http://localhost:${port}`)
-console.log(`📊 MCP Synthiepop enabled: ${config.mcp.synthiepop.enabled}`)
-if (config.mcp.synthiepop.enabled) {
-  console.log(`   Connected to: ${config.mcp.synthiepop.protocol}://${config.mcp.synthiepop.host}:${config.mcp.synthiepop.port}`)
+
+// Initialize MongoDB connection before starting server
+async function startServer() {
+  try {
+    // Connect to MongoDB
+    appLogger.info('Connecting to MongoDB...')
+    await mongoService.connect()
+    appLogger.info('MongoDB connected successfully')
+
+    // Start the server
+    appLogger.info(`🚀 Server is running on http://localhost:${port}`)
+    appLogger.info(`📊 MCP Synthiepop enabled: ${config.mcp.synthiepop.enabled}`)
+    if (config.mcp.synthiepop.enabled) {
+      appLogger.info(`   Connected to: ${config.mcp.synthiepop.protocol}://${config.mcp.synthiepop.host}:${config.mcp.synthiepop.port}`)
+    }
+
+    serve({
+      fetch: app.fetch,
+      port: Number(port),
+    })
+  } catch (error) {
+    appLogger.error('Failed to start server', error)
+    process.exit(1)
+  }
 }
 
-serve({
-  fetch: app.fetch,
-  port: Number(port),
-})
+// Start the server
+startServer()

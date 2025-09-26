@@ -1,6 +1,10 @@
 import { Context, Next } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import type { Tenant, TenantUser } from '../types/tenant'
+import { mongoService } from '../services/mongodb'
+import { Logger } from '../utils/logger'
+
+const logger = new Logger('TenantMiddleware')
 
 // Extended context with tenant information
 export interface TenantContext {
@@ -8,76 +12,6 @@ export interface TenantContext {
   user: TenantUser
   permissions: string[]
 }
-
-// Mock tenant store - replace with database
-const tenants = new Map<string, Tenant>()
-// const users = new Map<string, TenantUser>() // TODO: Implement user store
-
-// Initialize demo tenant
-const demoTenant: Tenant = {
-  id: 'demo-tenant-id',
-  name: 'Demo Company',
-  slug: 'demo',
-  contactEmail: 'admin@demo.com',
-  contactName: 'Demo Admin',
-  address: {
-    country: 'USA',
-  },
-  subscription: {
-    plan: 'professional',
-    status: 'active',
-    billingCycle: 'monthly',
-    currentPeriodStart: new Date().toISOString(),
-    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    limits: {
-      users: 50,
-      campaigns: 500,
-      apiCalls: 100000,
-      storage: 100,
-      workflows: ['retail_media', 'google_ads', 'meta_ads', 'analytics'],
-    },
-    usage: {
-      users: 5,
-      campaigns: 23,
-      apiCalls: 1523,
-      storage: 2.5,
-    },
-  },
-  settings: {
-    timezone: 'America/New_York',
-    dateFormat: 'MM/DD/YYYY',
-    currency: 'USD',
-    language: 'en',
-    features: {
-      sso: true,
-      apiAccess: true,
-      whiteLabel: false,
-      customIntegrations: true,
-      advancedAnalytics: true,
-      prioritySupport: true,
-    },
-    security: {
-      enforceSSO: false,
-      enforce2FA: false,
-      sessionTimeout: 30,
-      passwordPolicy: {
-        minLength: 8,
-        requireUppercase: true,
-        requireNumbers: true,
-        requireSpecialChars: false,
-      },
-    },
-  },
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  createdBy: 'system',
-  status: 'active',
-}
-
-tenants.set('demo', demoTenant)
-tenants.set('demo-tenant-id', demoTenant) // Also register by ID
-tenants.set('test-tenant', demoTenant) // Add test-tenant alias
-tenants.set('test', demoTenant) // Add test alias
 
 // Tenant identification strategies
 export function identifyTenant(c: Context): string | null {
