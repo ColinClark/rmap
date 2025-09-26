@@ -29,6 +29,7 @@ export class TenantService {
     try {
       const tenant = await this.tenantsCollection.findOne({
         $or: [
+          { id: identifier },
           { _id: identifier },
           { slug: identifier }
         ]
@@ -196,6 +197,97 @@ export class TenantService {
     const usage = tenant.subscription.usage[metric]
 
     return limit === -1 || usage < limit
+  }
+
+  /**
+   * Update tenant
+   */
+  async updateTenant(id: string, updates: Partial<Tenant>): Promise<Tenant | null> {
+    try {
+      // Remove id from updates if present
+      const { id: _id, ...updateData } = updates
+
+      // Add updatedAt timestamp
+      const dataWithTimestamp = {
+        ...updateData,
+        updatedAt: new Date().toISOString()
+      }
+
+      const result = await this.tenantsCollection.findOneAndUpdate(
+        { id },
+        { $set: dataWithTimestamp },
+        { returnDocument: 'after' }
+      )
+
+      if (!result) {
+        logger.warn(`Tenant not found for update: ${id}`)
+        return null
+      }
+
+      logger.info(`Updated tenant: ${id}`)
+      return result as Tenant
+    } catch (error) {
+      logger.error(`Error updating tenant ${id}`, error)
+      return null
+    }
+  }
+
+  /**
+   * Update tenant settings
+   */
+  async updateTenantSettings(id: string, settings: Partial<Tenant['settings']>): Promise<Tenant | null> {
+    try {
+      const result = await this.tenantsCollection.findOneAndUpdate(
+        { id },
+        {
+          $set: {
+            settings,
+            updatedAt: new Date().toISOString()
+          }
+        },
+        { returnDocument: 'after' }
+      )
+
+      if (!result) {
+        logger.warn(`Tenant not found for settings update: ${id}`)
+        return null
+      }
+
+      logger.info(`Updated tenant settings: ${id}`)
+      return result as Tenant
+    } catch (error) {
+      logger.error(`Error updating tenant settings ${id}`, error)
+      return null
+    }
+  }
+
+  /**
+   * Update tenant subscription
+   */
+  async updateTenantSubscription(id: string, subscription: Partial<Tenant['subscription']>): Promise<Tenant | null> {
+    try {
+      const result = await this.tenantsCollection.findOneAndUpdate(
+        { id },
+        {
+          $set: {
+            subscription,
+            updatedAt: new Date().toISOString()
+          }
+        },
+        { returnDocument: 'after' }
+      )
+
+      if (!result) {
+        logger.warn(`Tenant not found for subscription update: ${id}`)
+        return null
+      }
+
+      logger.info(`Updated tenant subscription: ${id}`)
+      return result as Tenant
+    } catch (error) {
+      logger.error(`Error updating tenant subscription ${id}`, error)
+      return null
+    }
   }
 
   /**

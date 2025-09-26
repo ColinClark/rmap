@@ -188,53 +188,18 @@ This document outlines the complete implementation plan for migrating from in-me
 
 ---
 
-## Phase 7: API Key Management
-**Status: PENDING**
-**Target Start: TBD**
-
-### Implementation Tasks:
-1. [ ] Generate API keys for tenants
-2. [ ] Implement key rotation
-3. [ ] Create permission scopes
-4. [ ] Add request signature validation
-5. [ ] Build key management UI
-6. [ ] Add rate limiting per key
-7. [ ] Implement key expiration
-8. [ ] Create API documentation
-
-### Automated Testing:
-- [ ] Test key generation
-- [ ] Test API authentication
-- [ ] Test scope enforcement
-- [ ] Test signature validation
-- [ ] Test key rotation
-- [ ] Test rate limiting
-
-### User Testing:
-- [ ] Generate API key
-- [ ] Test API access with key
-- [ ] Rotate API keys
-- [ ] Revoke key access
-- [ ] Set key permissions
-- [ ] View API usage
-- [ ] Test rate limits
-- [ ] Read API documentation
-
----
-
-## Phase 8: Performance & Monitoring
+## Phase 7: Performance & Monitoring
 **Status: PENDING**
 **Target Start: TBD**
 
 ### Implementation Tasks:
 1. [ ] Add MongoDB connection pooling
-2. [ ] Implement Redis caching layer
-3. [ ] Create monitoring dashboards
-4. [ ] Add alerting system
-5. [ ] Implement query optimization
-6. [ ] Add request tracing
-7. [ ] Create performance metrics
-8. [ ] Build SLA monitoring
+2. [ ] Create monitoring dashboards
+3. [ ] Add alerting system
+4. [ ] Implement query optimization
+5. [ ] Add request tracing
+6. [ ] Create performance metrics
+7. [ ] Build SLA monitoring
 
 ### Automated Testing:
 - [ ] Load testing (1000+ concurrent users)
@@ -256,7 +221,7 @@ This document outlines the complete implementation plan for migrating from in-me
 
 ---
 
-## Phase 9: Data Migration & Deployment
+## Phase 8: Data Migration & Deployment
 **Status: PENDING**
 **Target Start: TBD**
 
@@ -388,6 +353,34 @@ This document outlines the complete implementation plan for migrating from in-me
 - Frontend: http://localhost:3000
 - Backend: http://localhost:4000
 - MongoDB: Atlas Cloud
+
+---
+
+## Sandbox (Future Enhancements)
+**Status: IDEAS/FUTURE**
+**Priority: Low**
+
+### Redis Integration
+- [ ] Implement Redis caching layer
+- [ ] Session management in Redis
+- [ ] Rate limiting with Redis
+- [ ] Pub/sub for real-time features
+- [ ] Queue management for background jobs
+
+### API Key Management
+- [ ] Generate API keys for tenants
+- [ ] Implement key rotation
+- [ ] Create permission scopes
+- [ ] Add request signature validation
+- [ ] Build key management UI
+- [ ] Add rate limiting per key
+- [ ] Implement key expiration
+- [ ] Create API documentation
+
+### Notes:
+- These are nice-to-have features that can be implemented when needed
+- Not critical for initial production launch
+- Consider implementing based on actual performance needs and customer requests
 
 ---
 

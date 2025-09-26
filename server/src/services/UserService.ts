@@ -384,6 +384,57 @@ export class UserService {
   }
 
   /**
+   * Update user's role and permissions in tenant
+   */
+  async updateUserInTenant(
+    userId: string,
+    tenantId: string,
+    role: string,
+    permissions?: string[]
+  ): Promise<boolean> {
+    try {
+      const result = await this.tenantUsersCollection.updateOne(
+        { userId, tenantId },
+        {
+          $set: {
+            tenantRole: role,
+            permissions: permissions || [],
+            updatedAt: new Date().toISOString()
+          }
+        }
+      )
+
+      logger.info(`Updated user ${userId} in tenant ${tenantId}: role=${role}`)
+      return result.modifiedCount > 0
+    } catch (error) {
+      logger.error(`Error updating user in tenant`, error)
+      return false
+    }
+  }
+
+  /**
+   * Remove user from tenant
+   */
+  async removeUserFromTenant(userId: string, tenantId: string): Promise<boolean> {
+    try {
+      const result = await this.tenantUsersCollection.deleteOne({
+        userId,
+        tenantId
+      })
+
+      if (result.deletedCount > 0) {
+        logger.info(`Removed user ${userId} from tenant ${tenantId}`)
+        return true
+      }
+
+      return false
+    } catch (error) {
+      logger.error(`Error removing user from tenant`, error)
+      return false
+    }
+  }
+
+  /**
    * Verify email
    */
   async verifyEmail(token: string): Promise<boolean> {

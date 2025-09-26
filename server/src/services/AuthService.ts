@@ -153,6 +153,10 @@ export class AuthService {
         }
       }
 
+      // Get tenant information if we have a tenantId
+      let tenant = null
+      let userRole: string | undefined
+
       // Verify user belongs to the tenant (if tenantId provided)
       if (tenantId) {
         const tenantUsers = await userService.getTenantUsers(tenantId)
@@ -174,14 +178,12 @@ export class AuthService {
             error: 'You do not have access to this organization'
           }
         }
-      }
 
-      // Get user's role in the tenant
-      let userRole: string | undefined
-      if (tenantId) {
-        const tenantUsers = await userService.getTenantUsers(tenantId)
-        const userInTenant = tenantUsers.find(tu => tu.userId === user._id)
+        // Set user's role
         userRole = userInTenant?.tenantRole
+
+        // Get the tenant information
+        tenant = await tenantService.getTenant(tenantId)
       }
 
       // Create session
@@ -202,11 +204,12 @@ export class AuthService {
 
       const refreshToken = session.refreshToken
 
-      logger.info(`User ${user.email} logged in successfully`)
+      logger.info(`User ${user.email} logged in successfully with tenant ${tenantId}`)
 
       return {
         success: true,
         user,
+        tenant,
         session,
         accessToken,
         refreshToken

@@ -71,6 +71,12 @@ authRoutes.post('/login', zValidator('json', loginSchema), async (c) => {
       name: result.user?.name,
       emailVerified: result.user?.emailVerified
     },
+    tenant: result.tenant ? {
+      id: result.tenant.id,
+      name: result.tenant.name,
+      slug: result.tenant.slug,
+      subscription: result.tenant.subscription
+    } : null,
     tokens: {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken

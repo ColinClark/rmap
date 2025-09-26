@@ -15,14 +15,12 @@ import {
 import { requireTenantRole } from '../middleware/tenant'
 import { tenantService } from '../services/TenantService'
 import { userService } from '../services/UserService'
+import { invitationService } from '../services/InvitationService'
+import { activityService } from '../services/ActivityService'
 
 export const tenantRoutes = new Hono()
 
-// In-memory storage for demo (replace with database)
-// const tenants = new Map<string, Tenant>() // TODO: Implement tenant store
-const invitations = new Map<string, TenantInvitation>()
-// const usageEvents: UsageEvent[] = [] // TODO: Track usage events
-// const billingEvents: BillingEvent[] = [] // TODO: Implement billing events
+// Note: All data now stored in MongoDB via services
 
 // Get current tenant info
 tenantRoutes.get('/current', async (c) => {
@@ -82,57 +80,57 @@ tenantRoutes.patch(
       language: z.string().optional(),
     }).optional(),
   })),
-  (c) => {
+  async (c) => {
     const tenant = c.get('tenant') as Tenant
     const updates = c.req.valid('json')
-    
-    // Update tenant (in production, save to database)
-    Object.assign(tenant, updates, {
-      updatedAt: new Date().toISOString(),
-    })
-    
-    return c.json({ success: true, tenant })
+
+    // Update tenant in database
+    const updatedTenant = await tenantService.updateTenant(tenant.id, updates)
+
+    if (!updatedTenant) {
+      return c.json({ error: 'Failed to update tenant settings' }, 500)
+    }
+
+    return c.json({ success: true, tenant: updatedTenant })
   }
 )
 
 // Get team members
-tenantRoutes.get('/users', 
+tenantRoutes.get('/users',
   requireTenantRole('owner', 'admin', 'manager'),
-  (c) => {
+  async (c) => {
     const tenant = c.get('tenant') as Tenant
-    
-    // Mock team members
-    const users: TenantUser[] = [
-      {
-        id: 'user-1',
-        email: 'admin@demo.com',
-        name: 'Admin User',
-        tenantId: tenant.id,
-        tenantRole: 'owner',
-        permissions: ['*'],
-        emailVerified: true,
-        twoFactorEnabled: true,
-        status: 'active',
-        lastLoginAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'user-2',
-        email: 'manager@demo.com',
-        name: 'Marketing Manager',
-        tenantId: tenant.id,
-        tenantRole: 'manager',
-        permissions: ['retail_media', 'google_ads', 'meta_ads'],
-        emailVerified: true,
-        twoFactorEnabled: false,
-        status: 'active',
-        lastLoginAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ]
-    
+
+    // Get all users for this tenant from database
+    const tenantUsers = await userService.getTenantUsers(tenant.id)
+
+    // Get full user details for each tenant user
+    const usersWithDetails = await Promise.all(
+      tenantUsers.map(async (tu) => {
+        const user = await userService.getUser(tu.userId)
+        if (!user) return null
+
+        return {
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          tenantId: tu.tenantId,
+          tenantRole: tu.tenantRole,
+          permissions: tu.permissions,
+          emailVerified: user.emailVerified,
+          twoFactorEnabled: user.twoFactorEnabled || false,
+          status: tu.status,
+          lastLoginAt: user.lastLoginAt,
+          joinedAt: tu.joinedAt,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        }
+      })
+    )
+
+    // Filter out any nulls
+    const users = usersWithDetails.filter(u => u !== null)
+
     return c.json({ users, total: users.length })
   }
 )
@@ -145,51 +143,116 @@ tenantRoutes.post('/users/invite',
     role: z.enum(['admin', 'manager', 'member', 'viewer']),
     permissions: z.array(z.string()).optional(),
   })),
-  (c) => {
+  async (c) => {
     const tenant = c.get('tenant') as Tenant
-    const user = c.get('user') as TenantUser
+    const userId = c.get('userId') as string
     const { email, role, permissions } = c.req.valid('json')
-    
+
     // Check user limit
-    if (tenant.subscription.limits.users !== -1 && 
-        tenant.subscription.usage.users >= tenant.subscription.limits.users) {
-      return c.json({ 
-        error: 'User limit reached. Please upgrade your subscription.' 
+    if (tenant.subscription.limits.users !== -1 &&
+      tenant.subscription.usage.users >= tenant.subscription.limits.users) {
+      return c.json({
+        error: 'User limit reached. Please upgrade your subscription.'
       }, 403)
     }
-    
+
+    // Check if user already exists in this tenant
+    const existingUser = await userService.getUser(email)
+    if (existingUser) {
+      const tenantUsers = await userService.getTenantUsers(tenant.id)
+      const userInTenant = tenantUsers.find(tu => tu.userId === existingUser._id)
+      if (userInTenant) {
+        return c.json({ error: 'User is already a member of this organization' }, 400)
+      }
+    }
+
     // Create invitation
-    const invitation: TenantInvitation = {
-      id: `inv_${Date.now()}`,
+    const invitation = await invitationService.createInvitation({
       tenantId: tenant.id,
-      email,
+      tenantName: tenant.name,
+      email: email.toLowerCase(),
       role,
       permissions: permissions || [],
-      invitedBy: user.id,
-      invitedAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
-      token: Math.random().toString(36).substring(2),
+      invitedBy: userId
+    })
+
+    if (!invitation) {
+      return c.json({ error: 'Failed to create invitation' }, 500)
     }
-    
-    invitations.set(invitation.id, invitation)
-    
-    // In production, send invitation email
-    
+
     return c.json({ success: true, invitation })
+  }
+)
+
+// Update user role
+tenantRoutes.put('/users/:userId',
+  requireTenantRole('owner', 'admin'),
+  zValidator('json', z.object({
+    role: z.enum(['admin', 'manager', 'member', 'viewer']),
+    permissions: z.array(z.string()).optional(),
+  })),
+  async (c) => {
+    const tenant = c.get('tenant') as Tenant
+    const targetUserId = c.req.param('userId')
+    const currentUserId = c.get('userId') as string
+    const { role, permissions } = c.req.valid('json')
+
+    // Prevent users from modifying their own role
+    if (targetUserId === currentUserId) {
+      return c.json({ error: 'Cannot modify your own role' }, 403)
+    }
+
+    // Update user's role and permissions in the tenant
+    const success = await userService.updateUserInTenant(
+      targetUserId,
+      tenant.id,
+      role,
+      permissions
+    )
+
+    if (!success) {
+      return c.json({ error: 'Failed to update user role' }, 500)
+    }
+
+    return c.json({ success: true, userId: targetUserId, role, permissions })
   }
 )
 
 // Remove user
 tenantRoutes.delete('/users/:userId',
   requireTenantRole('owner', 'admin'),
-  (c) => {
-    const userId = c.req.param('userId')
-    // const tenant = c.get('tenant') as Tenant // TODO: Use for updating usage
-    
-    // In production, remove user from database
+  async (c) => {
+    const tenant = c.get('tenant') as Tenant
+    const targetUserId = c.req.param('userId')
+    const currentUserId = c.get('userId') as string
+
+    // Prevent users from removing themselves
+    if (targetUserId === currentUserId) {
+      return c.json({ error: 'Cannot remove yourself from the organization' }, 403)
+    }
+
+    // Check if user is the last owner
+    const tenantUsers = await userService.getTenantUsers(tenant.id)
+    const owners = tenantUsers.filter(tu => tu.tenantRole === 'owner')
+    const targetUser = tenantUsers.find(tu => tu.userId === targetUserId)
+
+    if (targetUser?.tenantRole === 'owner' && owners.length === 1) {
+      return c.json({ error: 'Cannot remove the last owner' }, 403)
+    }
+
+    // Remove user from tenant
+    const success = await userService.removeUserFromTenant(targetUserId, tenant.id)
+
+    if (!success) {
+      return c.json({ error: 'Failed to remove user' }, 500)
+    }
+
     // Update usage count
-    
-    return c.json({ success: true, userId })
+    await tenantService.updateTenant(tenant.id, {
+      'subscription.usage.users': Math.max(0, tenant.subscription.usage.users - 1)
+    })
+
+    return c.json({ success: true, userId: targetUserId })
   }
 )
 
@@ -297,34 +360,92 @@ tenantRoutes.post('/billing/subscription',
 // Get activity logs
 tenantRoutes.get('/activity',
   requireTenantRole('owner', 'admin'),
-  (c) => {
-    // const tenant = c.get('tenant') as Tenant // TODO: Filter by tenant
-    
-    // Mock activity logs
-    const activities = [
-      {
-        id: '1',
-        userId: 'user-1',
-        userName: 'Admin User',
-        action: 'campaign.created',
-        resource: 'Campaign',
-        resourceId: 'camp_123',
-        metadata: { name: 'Holiday Campaign' },
-        timestamp: new Date().toISOString(),
-      },
-      {
-        id: '2',
-        userId: 'user-2',
-        userName: 'Marketing Manager',
-        action: 'user.invited',
-        resource: 'User',
-        resourceId: 'user-3',
-        metadata: { email: 'newuser@demo.com' },
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-      },
-    ]
-    
-    return c.json({ activities, total: activities.length })
+  async (c) => {
+    const tenant = c.get('tenant') as Tenant
+    const limit = parseInt(c.req.query('limit') || '50')
+    const offset = parseInt(c.req.query('offset') || '0')
+    const userId = c.req.query('userId')
+    const action = c.req.query('action')
+    const resource = c.req.query('resource')
+
+    // Parse date filters
+    let startDate: Date | undefined
+    let endDate: Date | undefined
+
+    if (c.req.query('startDate')) {
+      startDate = new Date(c.req.query('startDate')!)
+    }
+    if (c.req.query('endDate')) {
+      endDate = new Date(c.req.query('endDate')!)
+    }
+
+    const result = await activityService.getTenantActivities(tenant.id, {
+      limit,
+      offset,
+      userId,
+      action,
+      resource,
+      startDate,
+      endDate
+    })
+
+    return c.json(result)
+  }
+)
+
+// Get activity statistics
+tenantRoutes.get('/activity/stats',
+  requireTenantRole('owner', 'admin'),
+  async (c) => {
+    const tenant = c.get('tenant') as Tenant
+    const days = parseInt(c.req.query('days') || '30')
+
+    const stats = await activityService.getActivityStats(tenant.id, days)
+
+    return c.json(stats)
+  }
+)
+
+// Tenant branding and customization
+tenantRoutes.put('/branding',
+  requireTenantRole('owner', 'admin'),
+  zValidator('json', z.object({
+    logo: z.string().url().optional(),
+    primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+    secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+    customDomain: z.string().optional(),
+    emailFromName: z.string().optional(),
+    supportEmail: z.string().email().optional(),
+    supportUrl: z.string().url().optional(),
+    customCSS: z.string().optional(),
+    favicon: z.string().url().optional(),
+    loginMessage: z.string().optional(),
+    footerText: z.string().optional(),
+  })),
+  async (c) => {
+    const tenant = c.get('tenant') as Tenant
+    const branding = c.req.valid('json')
+
+    // Update tenant branding in database
+    const updatedTenant = await tenantService.updateTenant(tenant.id, {
+      logo: branding.logo || tenant.logo,
+      settings: {
+        ...tenant.settings,
+        branding: {
+          ...(tenant.settings?.branding || {}),
+          ...branding
+        }
+      }
+    })
+
+    if (!updatedTenant) {
+      return c.json({ error: 'Failed to update branding' }, 500)
+    }
+
+    return c.json({
+      success: true,
+      branding: updatedTenant.settings.branding
+    })
   }
 )
 
@@ -344,16 +465,36 @@ tenantRoutes.patch('/security',
       expirationDays: z.number().optional(),
     }).optional(),
   })),
-  (c) => {
+  async (c) => {
     const tenant = c.get('tenant') as Tenant
     const updates = c.req.valid('json')
-    
-    // Update security settings
-    Object.assign(tenant.settings.security, updates)
-    
-    return c.json({ 
-      success: true, 
-      security: tenant.settings.security 
+
+    // Merge security settings with existing ones
+    const currentSecurity = tenant.settings?.security || {}
+    const mergedSecurity = {
+      ...currentSecurity,
+      ...updates,
+      passwordPolicy: updates.passwordPolicy ? {
+        ...(currentSecurity.passwordPolicy || {}),
+        ...updates.passwordPolicy
+      } : currentSecurity.passwordPolicy
+    }
+
+    // Update in database
+    const updatedTenant = await tenantService.updateTenant(tenant.id, {
+      settings: {
+        ...tenant.settings,
+        security: mergedSecurity
+      }
+    })
+
+    if (!updatedTenant) {
+      return c.json({ error: 'Failed to update security settings' }, 500)
+    }
+
+    return c.json({
+      success: true,
+      security: updatedTenant.settings.security
     })
   }
 )

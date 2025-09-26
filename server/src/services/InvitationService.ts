@@ -42,14 +42,17 @@ export class InvitationService {
   /**
    * Create a new invitation
    */
-  async createInvitation(
+  async createInvitation(data: {
     email: string,
     tenantId: string,
-    invitedBy: { userId: string; email: string; name: string },
-    role: TenantUser['tenantRole'] = 'member',
+    tenantName?: string,
+    invitedBy: string,
+    role: TenantUser['tenantRole'],
     permissions?: string[]
-  ): Promise<Invitation> {
+  }): Promise<Invitation | null> {
     try {
+      const { email, tenantId, role, permissions, invitedBy } = data
+
       // Get tenant info
       const tenant = await tenantService.getTenant(tenantId)
       if (!tenant) {
@@ -97,11 +100,12 @@ export class InvitationService {
       invitation._id = result.insertedId.toString()
 
       // Send invitation email
+      // For now, use tenant name as inviter name
       await emailService.sendInvitationEmail(
         email,
         invitation.token,
         tenant.name,
-        invitedBy.name,
+        tenant.name, // TODO: Get actual user name from invitedBy userId
         role
       )
 

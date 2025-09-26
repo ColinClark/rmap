@@ -9,6 +9,8 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
+import { VerifyEmail } from './pages/VerifyEmail';
+import { AcceptInvitation } from './pages/AcceptInvitation';
 import { Dashboard } from './pages/Dashboard';
 import { TenantSettings } from './pages/TenantSettings';
 import { RetailMediaWorkflow } from './workflows/RetailMediaWorkflow';
@@ -35,6 +37,8 @@ export default function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/accept-invitation" element={<AcceptInvitation />} />
 
             {/* Protected routes */}
             <Route

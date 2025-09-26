@@ -2,6 +2,7 @@ import { Context, Next } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 import type { Tenant, TenantUser } from '../types/tenant'
 import { mongoService } from '../services/mongodb'
+import { authService } from '../services/AuthService'
 import { Logger } from '../utils/logger'
 
 const logger = new Logger('TenantMiddleware')
@@ -84,7 +85,7 @@ export async function tenantMiddleware(c: Context, next: Next) {
     // Try to find by ID or slug
     const tenant = await tenantsCollection.findOne({
       $or: [
-        { _id: tenantId },
+        { id: tenantId },
         { slug: tenantId }
       ]
     }) as Tenant | null
@@ -157,20 +158,51 @@ export async function tenantMiddleware(c: Context, next: Next) {
       if (authorization?.startsWith('Bearer ')) {
         const token = authorization.substring(7)
 
-        // TODO: Item 8 - Validate JWT and get user ID
-        // For now, we'll use a hardcoded user ID for demo
-        userId = 'demo-user-id'
+        // Validate JWT and get user ID
+        try {
+          const decoded = authService.verifyToken(token)
+          if (decoded && typeof decoded === 'object' && 'userId' in decoded) {
+            userId = decoded.userId
+          }
+        } catch (error) {
+          logger.debug('Invalid JWT token', error)
+        }
       }
     }
 
     // If we have a userId, look up the user
     if (userId) {
-      // Lookup user in tenant_users collection
-      const tenantUsersCollection = mongoService.getControlDB().collection<TenantUser>('tenant_users')
-      user = await tenantUsersCollection.findOne({
+      // Lookup user in tenant_users collection to get the association
+      const tenantUsersCollection = mongoService.getControlDB().collection('tenant_users')
+      const tenantUser = await tenantUsersCollection.findOne({
         userId,
         tenantId: tenant.id
-      }) as TenantUser | null
+      })
+
+      if (tenantUser) {
+        // Get full user details
+        const usersCollection = mongoService.getControlDB().collection('users')
+        const fullUser = await usersCollection.findOne({ _id: userId })
+
+        if (fullUser) {
+          // Combine user details with tenant association
+          user = {
+            id: fullUser._id as string,
+            userId: fullUser._id as string,
+            email: fullUser.email,
+            name: fullUser.name || '',
+            tenantId: tenant.id,
+            tenantRole: tenantUser.tenantRole,
+            permissions: tenantUser.permissions || [],
+            emailVerified: fullUser.emailVerified || false,
+            twoFactorEnabled: fullUser.twoFactorEnabled || false,
+            status: tenantUser.status || 'active',
+            joinedAt: tenantUser.joinedAt,
+            createdAt: fullUser.createdAt,
+            updatedAt: fullUser.updatedAt
+          } as TenantUser
+        }
+      }
     }
 
     // If no user found via JWT, check for API key
