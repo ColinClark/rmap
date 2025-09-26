@@ -69,76 +69,94 @@ export function identifyTenant(c: Context): string | null {
 // Tenant middleware
 export async function tenantMiddleware(c: Context, next: Next) {
   const tenantId = identifyTenant(c)
-  
+
   if (!tenantId) {
-    console.error('No tenant ID identified from request')
-    console.log('Headers:', c.req.header())
+    logger.error('No tenant ID identified from request', { headers: c.req.header() })
     throw new HTTPException(400, {
       message: 'Tenant identification required. Please provide X-Tenant-ID or X-Tenant-Slug header',
     })
   }
 
-  const tenant = tenants.get(tenantId)
-  
-  if (!tenant) {
-    console.error(`Tenant not found: ${tenantId}`)
-    console.log('Available tenants:', Array.from(tenants.keys()))
-    throw new HTTPException(404, {
-      message: `Tenant '${tenantId}' not found`,
+  try {
+    // Query tenant from MongoDB
+    const tenantsCollection = mongoService.getControlDB().collection<Tenant>('tenants')
+
+    // Try to find by ID or slug
+    const tenant = await tenantsCollection.findOne({
+      $or: [
+        { _id: tenantId },
+        { slug: tenantId }
+      ]
+    }) as Tenant | null
+
+    if (!tenant) {
+      logger.error(`Tenant not found: ${tenantId}`)
+      throw new HTTPException(404, {
+        message: `Tenant '${tenantId}' not found`,
+      })
+    }
+
+    // Check tenant status
+    if (tenant.status === 'suspended') {
+      throw new HTTPException(403, {
+        message: 'Tenant account is suspended',
+      })
+    }
+
+    if (tenant.status === 'deleted') {
+      throw new HTTPException(404, {
+        message: 'Tenant not found',
+      })
+    }
+
+    // Check subscription status
+    if (tenant.subscription.status === 'canceled' || tenant.subscription.status === 'suspended') {
+      throw new HTTPException(403, {
+        message: 'Subscription is not active. Please update your billing information.',
+      })
+    }
+
+    // TODO: Item 2 - Add user lookup from MongoDB
+    // Mock user for demo - will be replaced in next todo item
+    const user: TenantUser = {
+      id: 'demo-user-id',
+      email: 'user@demo.com',
+      name: 'Demo User',
+      tenantId: tenant.id,
+      tenantRole: 'admin',
+      permissions: ['retail_media', 'google_ads', 'meta_ads', 'analytics'],
+      emailVerified: true,
+      twoFactorEnabled: false,
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+
+    // Attach tenant context to request
+    c.set('tenant', tenant)
+    c.set('user', user)
+    c.set('tenantContext', {
+      tenant,
+      user,
+      permissions: user.permissions,
+    } as TenantContext)
+
+    await next()
+  } catch (error) {
+    if (error instanceof HTTPException) {
+      throw error
+    }
+    logger.error('Error in tenant middleware', error)
+    throw new HTTPException(500, {
+      message: 'Internal server error while processing tenant information',
     })
   }
-
-  // Check tenant status
-  if (tenant.status === 'suspended') {
-    throw new HTTPException(403, {
-      message: 'Tenant account is suspended',
-    })
-  }
-
-  if (tenant.status === 'deleted') {
-    throw new HTTPException(404, {
-      message: 'Tenant not found',
-    })
-  }
-
-  // Check subscription status
-  if (tenant.subscription.status === 'canceled' || tenant.subscription.status === 'suspended') {
-    throw new HTTPException(403, {
-      message: 'Subscription is not active. Please update your billing information.',
-    })
-  }
-
-  // Mock user for demo - in production, get from JWT/session
-  const user: TenantUser = {
-    id: 'demo-user-id',
-    email: 'user@demo.com',
-    name: 'Demo User',
-    tenantId: tenant.id,
-    tenantRole: 'admin',
-    permissions: ['retail_media', 'google_ads', 'meta_ads', 'analytics'],
-    emailVerified: true,
-    twoFactorEnabled: false,
-    status: 'active',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }
-
-  // Attach tenant context to request
-  c.set('tenant', tenant)
-  c.set('user', user)
-  c.set('tenantContext', {
-    tenant,
-    user,
-    permissions: user.permissions,
-  } as TenantContext)
-
-  await next()
 }
 
 // Rate limiting per tenant
 export async function tenantRateLimitMiddleware(c: Context, next: Next) {
   const tenant = c.get('tenant') as Tenant
-  
+
   if (!tenant) {
     await next()
     return
@@ -154,8 +172,24 @@ export async function tenantRateLimitMiddleware(c: Context, next: Next) {
     })
   }
 
-  // In production, increment usage counter
-  // await incrementUsage(tenant.id, 'apiCalls')
+  try {
+    // Increment usage counter in MongoDB
+    const usageCollection = mongoService.getControlDB().collection('usage_events')
+    await usageCollection.insertOne({
+      tenantId: tenant.id,
+      type: 'api_call',
+      timestamp: new Date(),
+      endpoint: c.req.path,
+      method: c.req.method,
+    })
+
+    // TODO: Item 4 - Update tenant usage statistics in real-time
+    // For now, we'll handle this async to not block the request
+
+  } catch (error) {
+    logger.error('Failed to track API usage', error)
+    // Don't block the request if tracking fails
+  }
 
   await next()
 }
