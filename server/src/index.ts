@@ -28,6 +28,7 @@ const appLogger = new Logger('Server')
 
 // Import routes
 import { authRoutes } from './routes/auth'
+import { adminRoutes } from './routes/admin'
 import { audienceRoutes } from './routes/audience'
 import { campaignRoutes } from './routes/campaign'
 import { analyticsRoutes } from './routes/analytics'
@@ -67,6 +68,9 @@ app.get('/health', async (c) => {
 
 // Auth routes (no tenant required)
 app.route('/auth', authRoutes)
+
+// Admin portal routes (separate auth)
+app.route('/admin', adminRoutes)
 
 // Apply tenant middleware to all /api routes
 app.use('/api/*', tenantMiddleware)
@@ -117,6 +121,15 @@ async function startServer() {
     appLogger.info('Initializing email service...')
     await emailService.initialize()
     appLogger.info('Email service initialized')
+
+    // Initialize platform admin and app services
+    appLogger.info('Initializing platform services...')
+    const { platformAdminService } = await import('./services/PlatformAdminService')
+    const { appEntitlementService } = await import('./services/AppEntitlementService')
+    await platformAdminService.initializeDefaultAdmin()
+    await appEntitlementService.initializeDefaultApps()
+    await appEntitlementService.grantDefaultAppsToDemo()
+    appLogger.info('Platform services initialized')
 
     // Start the server
     appLogger.info(`🚀 Server is running on http://localhost:${port}`)

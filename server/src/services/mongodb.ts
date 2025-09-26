@@ -147,6 +147,13 @@ export class MongoDBService {
   }
 
   /**
+   * Check if MongoDB is connected
+   */
+  public isConnected(): boolean {
+    return this.client !== null;
+  }
+
+  /**
    * Health check
    */
   public async healthCheck(): Promise<boolean> {
