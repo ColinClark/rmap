@@ -156,9 +156,19 @@ export class AuthService {
       // Verify user belongs to the tenant (if tenantId provided)
       if (tenantId) {
         const tenantUsers = await userService.getTenantUsers(tenantId)
-        const userInTenant = tenantUsers.find(tu => tu.userId === user._id)
+        logger.info(`Found ${tenantUsers.length} users in tenant ${tenantId}`)
+
+        // Convert ObjectId to string if needed
+        const userIdStr = (user._id?.toString() || user._id || '').trim()
+        const userInTenant = tenantUsers.find(tu => {
+          const tuUserId = (tu.userId || '').toString().trim()
+          logger.info(`Comparing '${userIdStr}' with '${tuUserId}': ${userIdStr === tuUserId}`)
+          return tuUserId === userIdStr
+        })
+        logger.info(`Looking for userId ${userIdStr} (type: ${typeof userIdStr}), found: ${userInTenant ? 'yes' : 'no'}`)
 
         if (!userInTenant) {
+          logger.info(`User IDs in tenant: ${tenantUsers.map(tu => tu.userId).join(', ')}`)
           return {
             success: false,
             error: 'You do not have access to this organization'
@@ -246,12 +256,18 @@ export class AuthService {
         tenantId = tenant.id
 
         // Add user as owner of the new tenant
-        await userService.addUserToTenant(
-          user._id!,
-          tenant.id,
-          'owner',
-          ['*'] // All permissions for owner
-        )
+        try {
+          await userService.addUserToTenant(
+            user._id!,
+            tenant.id,
+            'owner',
+            ['*'] // All permissions for owner
+          )
+          logger.info(`Successfully added user ${user._id} to tenant ${tenant.id}`)
+        } catch (addError) {
+          logger.error(`Failed to add user to tenant:`, addError)
+          // Continue with registration even if this fails
+        }
       }
 
       // Send verification email in production
