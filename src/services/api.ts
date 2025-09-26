@@ -2,23 +2,27 @@ import { generateCorrelationId, storeServerCorrelationId } from './correlationId
 
 // API client for backend communication
 const API_BASE = 'http://localhost:4000/api'
+const AUTH_BASE = 'http://localhost:4000/auth'
 
 // Helper function for API calls with correlation ID
-async function apiCall(endpoint: string, options: RequestInit = {}) {
+async function apiCall(endpoint: string, options: RequestInit = {}, useAuthBase = false) {
   // Generate correlation ID for this request
   const correlationId = generateCorrelationId();
-  
+
   // Get tenant context if available
   const tenantId = localStorage.getItem('tenantId');
   const sessionId = sessionStorage.getItem('sessionId');
-  
-  const response = await fetch(`${API_BASE}${endpoint}`, {
+  const accessToken = localStorage.getItem('accessToken');
+
+  const baseUrl = useAuthBase ? AUTH_BASE : API_BASE;
+  const response = await fetch(`${baseUrl}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       'X-Correlation-ID': correlationId,
       ...(tenantId && { 'X-Tenant-ID': tenantId }),
       ...(sessionId && { 'X-Session-ID': sessionId }),
+      ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
       ...options.headers,
     },
     credentials: 'include',
@@ -145,3 +149,89 @@ export const integrationAPI = {
 
 // Health check
 export const healthCheck = () => apiCall('/health')
+
+// Auth API
+export const authAPI = {
+  login: async (email: string, password: string, tenantId?: string) => {
+    const response = await apiCall('/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, tenantId }),
+    }, true) // Use AUTH_BASE
+
+    // Store tokens and tenant info
+    if (response.tokens?.accessToken) {
+      localStorage.setItem('accessToken', response.tokens.accessToken)
+      localStorage.setItem('refreshToken', response.tokens.refreshToken)
+    }
+    if (response.session?.sessionToken) {
+      sessionStorage.setItem('sessionToken', response.session.sessionToken)
+    }
+    if (response.user) {
+      localStorage.setItem('userId', response.user.id)
+      localStorage.setItem('userEmail', response.user.email)
+    }
+
+    return response
+  },
+
+  register: async (email: string, password: string, name: string, tenantName?: string) => {
+    const response = await apiCall('/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, name, tenantName }),
+    }, true) // Use AUTH_BASE
+
+    // Store tokens and tenant info
+    if (response.tokens?.accessToken) {
+      localStorage.setItem('accessToken', response.tokens.accessToken)
+      localStorage.setItem('refreshToken', response.tokens.refreshToken)
+    }
+    if (response.session?.sessionToken) {
+      sessionStorage.setItem('sessionToken', response.session.sessionToken)
+    }
+    if (response.user) {
+      localStorage.setItem('userId', response.user.id)
+      localStorage.setItem('userEmail', response.user.email)
+    }
+
+    return response
+  },
+
+  logout: async () => {
+    try {
+      await apiCall('/logout', {
+        method: 'POST',
+      }, true) // Use AUTH_BASE
+    } finally {
+      // Clear all stored auth data
+      localStorage.removeItem('accessToken')
+      localStorage.removeItem('refreshToken')
+      localStorage.removeItem('userId')
+      localStorage.removeItem('userEmail')
+      localStorage.removeItem('tenantId')
+      sessionStorage.removeItem('sessionToken')
+    }
+  },
+
+  refresh: async () => {
+    const refreshToken = localStorage.getItem('refreshToken')
+    if (!refreshToken) {
+      throw new Error('No refresh token available')
+    }
+
+    const response = await apiCall('/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken }),
+    }, true) // Use AUTH_BASE
+
+    // Store new access token
+    if (response.accessToken) {
+      localStorage.setItem('accessToken', response.accessToken)
+    }
+
+    return response
+  },
+
+  me: async () => {
+    return apiCall('/me', {}, true) // Use AUTH_BASE
+  },
+}
