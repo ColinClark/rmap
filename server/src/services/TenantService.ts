@@ -53,8 +53,10 @@ export class TenantService {
     const plan = data.plan || 'free'
     const limits = this.getPlanLimits(plan)
 
+    const tenantId = `tenant_${Date.now()}`
     const tenant: Tenant = {
-      id: `tenant_${Date.now()}`,
+      _id: tenantId,
+      id: tenantId,
       name: data.name,
       slug: data.slug,
       contactEmail: data.contactEmail,

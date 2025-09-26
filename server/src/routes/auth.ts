@@ -9,6 +9,7 @@ import { authService } from '../services/AuthService'
 import { userService } from '../services/UserService'
 import { emailService } from '../services/EmailService'
 import { tenantService } from '../services/TenantService'
+import { authMiddleware } from '../middleware/auth'
 import { Logger } from '../utils/logger'
 import * as bcrypt from 'bcrypt'
 
@@ -110,6 +111,11 @@ authRoutes.post('/register', zValidator('json', registerSchema), async (c) => {
       name: result.user?.name,
       emailVerified: result.user?.emailVerified
     },
+    tenant: result.tenant ? {
+      id: result.tenant.id,
+      name: result.tenant.name,
+      slug: result.tenant.slug
+    } : null,
     tokens: {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken
@@ -187,29 +193,42 @@ authRoutes.post('/logout', async (c) => {
  * GET /auth/me
  * Get current user info (requires authentication)
  */
-authRoutes.get('/me', async (c) => {
-  // This endpoint requires the tenant middleware to have run
-  // It will be used when we apply auth middleware
+authRoutes.get('/me', authMiddleware, async (c) => {
   const user = c.get('user')
-  const tenant = c.get('tenant')
+  const userId = c.get('userId')
+  const tenantId = c.get('tenantId')
 
   if (!user) {
     return c.json({ error: 'Not authenticated' }, 401)
   }
 
+  // Get tenant info if tenantId is present
+  let tenantInfo = null
+  if (tenantId) {
+    const tenant = await tenantService.getTenant(tenantId)
+    if (tenant) {
+      // Get user's role in this tenant
+      const tenantUsers = await userService.getTenantUsers(tenantId)
+      const userInTenant = tenantUsers.find(tu => tu.userId === userId)
+
+      tenantInfo = {
+        id: tenant.id,
+        name: tenant.name,
+        slug: tenant.slug,
+        role: userInTenant?.tenantRole || 'member',
+        permissions: userInTenant?.permissions || []
+      }
+    }
+  }
+
   return c.json({
     user: {
-      id: user.id,
+      id: user._id,
       email: user.email,
       name: user.name,
-      role: user.tenantRole,
-      permissions: user.permissions
+      emailVerified: user.emailVerified
     },
-    tenant: tenant ? {
-      id: tenant.id,
-      name: tenant.name,
-      slug: tenant.slug
-    } : null
+    tenant: tenantInfo
   })
 })
 

@@ -212,10 +212,10 @@ The ${tenantName} Team
    */
   async sendInvitationEmail(
     email: string,
-    inviterName: string,
+    inviteToken: string,
     tenantName: string,
-    role: string,
-    inviteToken: string
+    inviterName: string,
+    role: string
   ): Promise<void> {
     const inviteUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/accept-invite?token=${inviteToken}`
 

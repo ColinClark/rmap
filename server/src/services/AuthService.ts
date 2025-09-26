@@ -176,6 +176,14 @@ export class AuthService {
         }
       }
 
+      // Get user's role in the tenant
+      let userRole: string | undefined
+      if (tenantId) {
+        const tenantUsers = await userService.getTenantUsers(tenantId)
+        const userInTenant = tenantUsers.find(tu => tu.userId === user._id)
+        userRole = userInTenant?.tenantRole
+      }
+
       // Create session
       const session = await userService.createSession(
         user._id!,
@@ -184,11 +192,12 @@ export class AuthService {
         userAgent
       )
 
-      // Generate tokens
+      // Generate tokens with role
       const accessToken = this.generateAccessToken(
         user._id!,
         user.email,
-        tenantId
+        tenantId,
+        userRole
       )
 
       const refreshToken = session.refreshToken
@@ -244,26 +253,27 @@ export class AuthService {
 
       // If tenant name provided, create new tenant
       let tenantId: string | undefined
+      let createdTenant: any = null
       if (tenantName) {
         const slug = this.generateTenantSlug(tenantName)
-        const tenant = await tenantService.createTenant({
+        createdTenant = await tenantService.createTenant({
           name: tenantName,
           slug,
           contactEmail: email,
           contactName: name,
           plan: 'free'
         })
-        tenantId = tenant.id
+        tenantId = createdTenant.id
 
         // Add user as owner of the new tenant
         try {
           await userService.addUserToTenant(
             user._id!,
-            tenant.id,
+            createdTenant.id,
             'owner',
             ['*'] // All permissions for owner
           )
-          logger.info(`Successfully added user ${user._id} to tenant ${tenant.id}`)
+          logger.info(`Successfully added user ${user._id} to tenant ${createdTenant.id}`)
         } catch (addError) {
           logger.error(`Failed to add user to tenant:`, addError)
           // Continue with registration even if this fails
@@ -289,17 +299,18 @@ export class AuthService {
         tenantId || 'default'
       )
 
-      // Generate tokens
+      // Generate tokens (owner role for new tenant creator)
       const accessToken = this.generateAccessToken(
         user._id!,
         user.email,
-        tenantId
+        tenantId,
+        tenantName ? 'owner' : undefined  // Owner role if creating new tenant
       )
 
       logger.info(`New user registered: ${user.email}`)
 
-      // Get tenant info if available
-      const tenant = tenantId ? await tenantService.getTenant(tenantId) : null
+      // Return the created tenant or fetch it if needed
+      const tenant = createdTenant || (tenantId ? await tenantService.getTenant(tenantId) : null)
 
       return {
         success: true,

@@ -33,6 +33,7 @@ import { campaignRoutes } from './routes/campaign'
 import { analyticsRoutes } from './routes/analytics'
 import { integrationRoutes } from './routes/integrations'
 import { tenantRoutes } from './routes/tenant'
+import { invitationRoutes } from './routes/invitation'
 import queryRoutes from './routes/query'
 import testMcpRoutes from './routes/test-mcp'
 import { cohort } from './routes/cohort'
@@ -79,6 +80,7 @@ app.route('/api/audience', audienceRoutes)
 app.route('/api/campaign', campaignRoutes)
 app.route('/api/analytics', analyticsRoutes)
 app.route('/api/integrations', integrationRoutes)
+app.route('/api/invitations', invitationRoutes)
 app.route('/api/query', queryRoutes)
 app.route('/api/cohort', cohort)
 
