@@ -2,7 +2,7 @@
  * UserService - Handles all user-related operations
  */
 
-import { Collection } from 'mongodb'
+import { Collection, ObjectId } from 'mongodb'
 import { mongoService } from './mongodb'
 import { Logger } from '../utils/logger'
 import { TenantUser, type Tenant } from '../types/tenant'
@@ -57,10 +57,13 @@ export class UserService {
    */
   async getUser(identifier: string): Promise<User | null> {
     try {
+      // Check if identifier looks like an ObjectId (24 hex characters)
+      const isObjectId = /^[0-9a-fA-F]{24}$/.test(identifier)
+
       const user = await this.usersCollection.findOne({
         $or: [
-          { _id: identifier },
-          { email: identifier }
+          isObjectId ? { _id: new ObjectId(identifier) } : { _id: identifier },
+          { email: identifier.toLowerCase() }
         ]
       })
       return user
@@ -106,8 +109,10 @@ export class UserService {
     role: TenantUser['tenantRole'] = 'member',
     permissions: string[] = []
   ): Promise<TenantUser> {
+    logger.info(`Adding user ${userId} to tenant ${tenantId}`)
     const user = await this.getUser(userId)
     if (!user) {
+      logger.error(`User not found for ID: ${userId}`)
       throw new Error('User not found')
     }
 
@@ -137,9 +142,11 @@ export class UserService {
    */
   async getUserTenants(userId: string): Promise<TenantUser[]> {
     try {
+      logger.info(`Fetching tenants for user: ${userId}`)
       const tenants = await this.tenantUsersCollection.find({
         userId
       }).toArray()
+      logger.info(`Found ${tenants.length} tenants for user ${userId}`)
       return tenants
     } catch (error) {
       logger.error('Error fetching user tenants', error)
@@ -341,15 +348,42 @@ export class UserService {
   }
 
   /**
+   * Set email verification token
+   */
+  async setEmailVerificationToken(email: string): Promise<string | null> {
+    const token = this.generateToken()
+    const expires = new Date(Date.now() + 86400000) // 24 hours
+
+    const result = await this.usersCollection.updateOne(
+      { email: email.toLowerCase() },
+      {
+        $set: {
+          emailVerificationToken: token,
+          emailVerificationExpires: expires
+        }
+      }
+    )
+
+    return result.modifiedCount > 0 ? token : null
+  }
+
+  /**
    * Verify email
    */
   async verifyEmail(token: string): Promise<boolean> {
     const result = await this.usersCollection.updateOne(
-      { emailVerificationToken: token },
+      {
+        emailVerificationToken: token,
+        emailVerificationExpires: { $gt: new Date() }
+      },
       {
         $set: {
           emailVerified: true,
-          emailVerificationToken: null
+          updatedAt: new Date().toISOString()
+        },
+        $unset: {
+          emailVerificationToken: '',
+          emailVerificationExpires: ''
         }
       }
     )

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { tenantAPI } from '../services/api';
 
 export interface Tenant {
   id: string;
@@ -69,19 +70,85 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
 
   const loadTenant = async () => {
     try {
-      // Get tenant from subdomain, localStorage, or API
-      const host = window.location.hostname;
-      const subdomain = host.split('.')[0];
-      
-      // For localhost, use demo tenant
-      const tenantSlug = host.includes('localhost') ? 'demo' : subdomain;
-      
-      // In production, fetch from API with auth token
-      // For demo, use mock data
+      // Check if user is authenticated
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        console.log('No auth token, skipping tenant load');
+        setLoading(false);
+        return;
+      }
+
+      // Fetch tenant data from API
+      const response = await tenantAPI.getCurrent();
+
+      if (response && response.tenant) {
+        const tenantData: Tenant = {
+          id: response.tenant.id,
+          name: response.tenant.name,
+          slug: response.tenant.slug,
+          logo: response.tenant.logo,
+          subscription: {
+            ...response.tenant.subscription,
+            billingCycle: response.tenant.subscription.billingCycle || 'monthly',
+          },
+          settings: response.tenant.settings,
+        };
+
+        setTenant(tenantData);
+
+        // Store tenant info for API calls
+        localStorage.setItem('tenantId', tenantData.id);
+        localStorage.setItem('tenantSlug', tenantData.slug);
+      } else {
+        // Fall back to demo tenant if API fails
+        const mockTenant: Tenant = {
+          id: 'demo-tenant-id',
+          name: 'Demo Company',
+          slug: 'demo',
+          logo: '/logo.png',
+          subscription: {
+            plan: 'professional',
+            status: 'active',
+            billingCycle: 'monthly',
+            currentPeriodStart: new Date().toISOString(),
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            limits: {
+              users: 50,
+              campaigns: 500,
+              apiCalls: 100000,
+              storage: 100,
+              workflows: ['retail_media', 'google_ads', 'meta_ads', 'linkedin_ads', 'analytics', 'budget', 'calendar', 'data'],
+            },
+            usage: {
+              users: 5,
+              campaigns: 23,
+              apiCalls: 1523,
+              storage: 2.5,
+            },
+          },
+          settings: {
+            features: {
+              sso: true,
+              apiAccess: true,
+              whiteLabel: false,
+              customIntegrations: true,
+              advancedAnalytics: true,
+              prioritySupport: true,
+            },
+          },
+        };
+        setTenant(mockTenant);
+        localStorage.setItem('tenantId', mockTenant.id);
+        localStorage.setItem('tenantSlug', mockTenant.slug);
+      }
+
+    } catch (error) {
+      console.error('Failed to load tenant:', error);
+      // Fall back to demo tenant on error
       const mockTenant: Tenant = {
         id: 'demo-tenant-id',
         name: 'Demo Company',
-        slug: tenantSlug,
+        slug: 'demo',
         logo: '/logo.png',
         subscription: {
           plan: 'professional',
@@ -114,14 +181,9 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
           },
         },
       };
-      
       setTenant(mockTenant);
-      
-      // Store tenant info for API calls
-      localStorage.setItem('tenant', tenantSlug);
-      
-    } catch (error) {
-      console.error('Failed to load tenant:', error);
+      localStorage.setItem('tenantId', mockTenant.id);
+      localStorage.setItem('tenantSlug', mockTenant.slug);
     } finally {
       setLoading(false);
     }
@@ -131,7 +193,7 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       // In production, switch tenant context
-      localStorage.setItem('tenant', tenantSlug);
+      localStorage.setItem('tenantSlug', tenantSlug);
       await loadTenant();
     } catch (error) {
       console.error('Failed to switch tenant:', error);

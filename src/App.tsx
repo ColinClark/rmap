@@ -6,6 +6,9 @@ import { TenantProvider } from './contexts/TenantContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { Login } from './pages/Login';
+import { Register } from './pages/Register';
+import { ForgotPassword } from './pages/ForgotPassword';
+import { ResetPassword } from './pages/ResetPassword';
 import { Dashboard } from './pages/Dashboard';
 import { TenantSettings } from './pages/TenantSettings';
 import { RetailMediaWorkflow } from './workflows/RetailMediaWorkflow';
@@ -29,7 +32,10 @@ export default function App() {
             <Routes>
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
-            
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+
             {/* Protected routes */}
             <Route
               path="/"

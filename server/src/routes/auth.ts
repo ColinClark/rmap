@@ -6,7 +6,11 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import { authService } from '../services/AuthService'
+import { userService } from '../services/UserService'
+import { emailService } from '../services/EmailService'
+import { tenantService } from '../services/TenantService'
 import { Logger } from '../utils/logger'
+import * as bcrypt from 'bcrypt'
 
 const logger = new Logger('AuthRoutes')
 
@@ -208,3 +212,146 @@ authRoutes.get('/me', async (c) => {
     } : null
   })
 })
+
+/**
+ * POST /auth/forgot-password
+ * Request password reset
+ */
+authRoutes.post('/forgot-password',
+  zValidator('json', z.object({
+    email: z.string().email()
+  })),
+  async (c) => {
+    const { email } = c.req.valid('json')
+
+    try {
+      // Get user by email
+      const user = await userService.getUser(email)
+
+      if (user) {
+        // Generate reset token
+        const resetToken = await userService.setPasswordResetToken(email)
+
+        if (resetToken) {
+          // Get tenant info for email branding
+          const userTenants = await userService.getUserTenants(user._id!)
+          const tenantId = userTenants[0]?.tenantId
+          const tenant = tenantId ? await tenantService.getTenant(tenantId) : null
+          const tenantName = tenant?.name || 'RMAP Platform'
+
+          // Send password reset email
+          await emailService.sendPasswordResetEmail(email, resetToken, tenantName)
+
+          logger.info(`Password reset email sent to ${email}`)
+        }
+      }
+
+      // Always return success to prevent email enumeration
+      return c.json({
+        success: true,
+        message: 'If an account exists with this email, a password reset link has been sent.'
+      })
+    } catch (error) {
+      logger.error('Error in forgot-password', error)
+      // Still return success to prevent email enumeration
+      return c.json({
+        success: true,
+        message: 'If an account exists with this email, a password reset link has been sent.'
+      })
+    }
+  }
+)
+
+/**
+ * POST /auth/reset-password
+ * Reset password with token
+ */
+authRoutes.post('/reset-password',
+  zValidator('json', z.object({
+    token: z.string(),
+    newPassword: z.string().min(8)
+  })),
+  async (c) => {
+    const { token, newPassword } = c.req.valid('json')
+
+    try {
+      // Find user with valid reset token
+      const usersCollection = userService['usersCollection']
+      const user = await usersCollection.findOne({
+        passwordResetToken: token,
+        passwordResetExpires: { $gt: new Date() }
+      })
+
+      if (!user) {
+        return c.json({
+          error: 'Invalid or expired reset token'
+        }, 400)
+      }
+
+      // Hash new password
+      const passwordHash = await bcrypt.hash(newPassword, 10)
+
+      // Update user password and clear reset token
+      await usersCollection.updateOne(
+        { _id: user._id },
+        {
+          $set: {
+            passwordHash,
+            updatedAt: new Date().toISOString()
+          },
+          $unset: {
+            passwordResetToken: '',
+            passwordResetExpires: ''
+          }
+        }
+      )
+
+      logger.info(`Password reset successful for user ${user.email}`)
+
+      return c.json({
+        success: true,
+        message: 'Password has been reset successfully. You can now login with your new password.'
+      })
+    } catch (error) {
+      logger.error('Error in reset-password', error)
+      return c.json({
+        error: 'Failed to reset password'
+      }, 500)
+    }
+  }
+)
+
+/**
+ * POST /auth/verify-email
+ * Verify email with token
+ */
+authRoutes.post('/verify-email',
+  zValidator('json', z.object({
+    token: z.string()
+  })),
+  async (c) => {
+    const { token } = c.req.valid('json')
+
+    try {
+      const success = await userService.verifyEmail(token)
+
+      if (!success) {
+        return c.json({
+          error: 'Invalid or expired verification token'
+        }, 400)
+      }
+
+      logger.info('Email verification successful')
+
+      return c.json({
+        success: true,
+        message: 'Email verified successfully. You can now access all features.'
+      })
+    } catch (error) {
+      logger.error('Error in verify-email', error)
+      return c.json({
+        error: 'Failed to verify email'
+      }, 500)
+    }
+  }
+)

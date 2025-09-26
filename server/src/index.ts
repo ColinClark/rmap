@@ -5,9 +5,15 @@ import { logger } from 'hono/logger'
 // import { z } from 'zod'
 // import { zValidator } from '@hono/zod-validator'
 import * as dotenv from 'dotenv'
+import * as path from 'path'
+import { fileURLToPath } from 'url'
 
-// Load environment variables
-dotenv.config()
+// Get __dirname equivalent in ES module
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+// Load environment variables from parent directory
+dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
 // Load configuration
 import configLoader from './services/config/ConfigLoader'
@@ -15,6 +21,7 @@ const config = configLoader.loadConfig()
 
 // Import MongoDB service
 import { mongoService } from './services/mongodb'
+import { emailService } from './services/EmailService'
 import { Logger } from './utils/logger'
 
 const appLogger = new Logger('Server')
@@ -29,6 +36,7 @@ import { tenantRoutes } from './routes/tenant'
 import queryRoutes from './routes/query'
 import testMcpRoutes from './routes/test-mcp'
 import { cohort } from './routes/cohort'
+import { testEmailRoutes } from './routes/test-email'
 
 // Import middleware
 import { tenantMiddleware, tenantRateLimitMiddleware } from './middleware/tenant'
@@ -77,6 +85,11 @@ app.route('/api/cohort', cohort)
 // Test MCP routes (no tenant required for testing)
 app.route('/test-mcp', testMcpRoutes)
 
+// Test email routes (development only)
+if (process.env.NODE_ENV === 'development') {
+  app.route('/test-email', testEmailRoutes)
+}
+
 // Error handling
 app.onError((err, c) => {
   console.error(`Error: ${err}`)
@@ -97,6 +110,11 @@ async function startServer() {
     appLogger.info('Connecting to MongoDB...')
     await mongoService.connect()
     appLogger.info('MongoDB connected successfully')
+
+    // Initialize email service
+    appLogger.info('Initializing email service...')
+    await emailService.initialize()
+    appLogger.info('Email service initialized')
 
     // Start the server
     appLogger.info(`🚀 Server is running on http://localhost:${port}`)

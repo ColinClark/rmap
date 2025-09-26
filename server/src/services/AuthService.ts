@@ -6,6 +6,7 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { userService, type User, type Session } from './UserService'
 import { tenantService } from './TenantService'
+import { emailService } from './EmailService'
 import { Logger } from '../utils/logger'
 import { appConfig } from '../config'
 
@@ -253,6 +254,19 @@ export class AuthService {
         )
       }
 
+      // Send verification email in production
+      if (appConfig.server.env === 'production' || process.env.SEND_EMAILS === 'true') {
+        const verificationToken = await userService.setEmailVerificationToken(email)
+        if (verificationToken) {
+          await emailService.sendVerificationEmail(
+            email,
+            verificationToken,
+            tenantName || 'RMAP Platform'
+          )
+          logger.info(`Verification email sent to ${email}`)
+        }
+      }
+
       // Create session
       const session = await userService.createSession(
         user._id!,
@@ -268,18 +282,22 @@ export class AuthService {
 
       logger.info(`New user registered: ${user.email}`)
 
+      // Get tenant info if available
+      const tenant = tenantId ? await tenantService.getTenant(tenantId) : null
+
       return {
         success: true,
         user,
+        tenant,
         session,
         accessToken,
         refreshToken: session.refreshToken
       }
     } catch (error) {
-      logger.error('Registration error', error)
+      logger.error('Registration error:', error)
       return {
         success: false,
-        error: 'An error occurred during registration'
+        error: error instanceof Error ? error.message : 'An error occurred during registration'
       }
     }
   }

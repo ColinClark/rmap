@@ -1,18 +1,20 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
-import { 
-  // TenantSchema, 
+import {
+  // TenantSchema,
   // TenantUserSchema,
   // TenantInvitationSchema,
   SUBSCRIPTION_PLANS,
   type Tenant,
   type TenantUser,
   type TenantInvitation
-  // type UsageEvent, // TODO: Track usage events  
+  // type UsageEvent, // TODO: Track usage events
   // type BillingEvent // TODO: Implement billing
 } from '../types/tenant'
 import { requireTenantRole } from '../middleware/tenant'
+import { tenantService } from '../services/TenantService'
+import { userService } from '../services/UserService'
 
 export const tenantRoutes = new Hono()
 
@@ -23,18 +25,25 @@ const invitations = new Map<string, TenantInvitation>()
 // const billingEvents: BillingEvent[] = [] // TODO: Implement billing events
 
 // Get current tenant info
-tenantRoutes.get('/current', (c) => {
+tenantRoutes.get('/current', async (c) => {
   const tenant = c.get('tenant') as Tenant
   const user = c.get('user') as TenantUser
-  
+
+  // Get fresh tenant data from database
+  const currentTenant = await tenantService.getTenant(tenant.id)
+
+  if (!currentTenant) {
+    return c.json({ error: 'Tenant not found' }, 404)
+  }
+
   return c.json({
     tenant: {
-      id: tenant.id,
-      name: tenant.name,
-      slug: tenant.slug,
-      logo: tenant.logo,
-      subscription: tenant.subscription,
-      settings: tenant.settings,
+      id: currentTenant.id,
+      name: currentTenant.name,
+      slug: currentTenant.slug,
+      logo: currentTenant.logo,
+      subscription: currentTenant.subscription,
+      settings: currentTenant.settings,
     },
     user: {
       id: user.id,
@@ -43,9 +52,9 @@ tenantRoutes.get('/current', (c) => {
       role: user.tenantRole,
       permissions: user.permissions,
     },
-    limits: tenant.subscription.limits,
-    usage: tenant.subscription.usage,
-    features: tenant.settings.features,
+    limits: currentTenant.subscription.limits,
+    usage: currentTenant.subscription.usage,
+    features: currentTenant.settings.features,
   })
 })
 

@@ -23,6 +23,8 @@ export function Login() {
 
     try {
       await login(email, password);
+      // Navigate to dashboard after successful login
+      navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Failed to login');
       setLoading(false);
@@ -30,8 +32,8 @@ export function Login() {
   };
 
   const handleDemoLogin = () => {
-    setEmail('admin@example.com');
-    setPassword('demo123');
+    setEmail('test@example.com');
+    setPassword('password123');
   };
 
   return (

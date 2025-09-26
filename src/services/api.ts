@@ -37,12 +37,52 @@ async function apiCall(endpoint: string, options: RequestInit = {}, useAuthBase 
     console.debug(`Request ${correlationId} -> Server ${serverCorrelationId}`);
   }
   
+  // Handle 401 Unauthorized - attempt to refresh token
+  if (response.status === 401 && !useAuthBase) {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (refreshToken) {
+      try {
+        // Attempt to refresh the access token
+        const refreshResponse = await authAPI.refresh();
+
+        // Retry the original request with the new token
+        const newAccessToken = localStorage.getItem('accessToken');
+        const retryResponse = await fetch(`${baseUrl}${endpoint}`, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Correlation-ID': correlationId,
+            ...(tenantId && { 'X-Tenant-ID': tenantId }),
+            ...(sessionId && { 'X-Session-ID': sessionId }),
+            ...(newAccessToken && { 'Authorization': `Bearer ${newAccessToken}` }),
+            ...options.headers,
+          },
+          credentials: 'include',
+        });
+
+        if (!retryResponse.ok) {
+          const error = await retryResponse.json().catch(() => ({ error: 'Unknown error' }));
+          console.error(`API Error after refresh [${correlationId}]:`, error);
+          throw new Error(error.error || `API Error: ${retryResponse.status}`);
+        }
+
+        return retryResponse.json();
+      } catch (refreshError) {
+        // Refresh failed, redirect to login
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = '/login';
+        throw new Error('Session expired. Please login again.');
+      }
+    }
+  }
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Unknown error' }))
     console.error(`API Error [${correlationId}]:`, error);
     throw new Error(error.error || `API Error: ${response.status}`)
   }
-  
+
   return response.json()
 }
 
@@ -150,6 +190,31 @@ export const integrationAPI = {
 // Health check
 export const healthCheck = () => apiCall('/health')
 
+// Tenant API
+export const tenantAPI = {
+  getCurrent: () => apiCall('/tenant/current'),
+  updateSettings: (data: any) => apiCall('/tenant/settings', {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  }),
+  getUsers: () => apiCall('/tenant/users'),
+  inviteUser: (data: { email: string; role: string; permissions?: string[] }) =>
+    apiCall('/tenant/users/invite', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  removeUser: (userId: string) => apiCall(`/tenant/users/${userId}`, {
+    method: 'DELETE',
+  }),
+  getUsage: () => apiCall('/tenant/usage'),
+  getBilling: () => apiCall('/tenant/billing'),
+  updateSubscription: (data: { plan: string; billingCycle: string }) =>
+    apiCall('/tenant/billing/subscription', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+}
+
 // Auth API
 export const authAPI = {
   login: async (email: string, password: string, tenantId?: string) => {
@@ -233,5 +298,26 @@ export const authAPI = {
 
   me: async () => {
     return apiCall('/me', {}, true) // Use AUTH_BASE
+  },
+
+  forgotPassword: async (email: string) => {
+    return apiCall('/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    }, true) // Use AUTH_BASE
+  },
+
+  resetPassword: async (token: string, newPassword: string) => {
+    return apiCall('/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
+    }, true) // Use AUTH_BASE
+  },
+
+  verifyEmail: async (token: string) => {
+    return apiCall('/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }, true) // Use AUTH_BASE
   },
 }
