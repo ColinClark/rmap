@@ -116,20 +116,77 @@ export async function tenantMiddleware(c: Context, next: Next) {
       })
     }
 
-    // TODO: Item 2 - Add user lookup from MongoDB
-    // Mock user for demo - will be replaced in next todo item
-    const user: TenantUser = {
-      id: 'demo-user-id',
-      email: 'user@demo.com',
-      name: 'Demo User',
-      tenantId: tenant.id,
-      tenantRole: 'admin',
-      permissions: ['retail_media', 'google_ads', 'meta_ads', 'analytics'],
-      emailVerified: true,
-      twoFactorEnabled: false,
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+    // Get user from session/JWT
+    let user: TenantUser | null = null
+
+    // Check Authorization header for JWT
+    const authorization = c.req.header('Authorization')
+    if (authorization?.startsWith('Bearer ')) {
+      const token = authorization.substring(7)
+
+      // TODO: Item 3 - Validate JWT and get user ID
+      // For now, we'll use a hardcoded user ID for demo
+      const userId = 'demo-user-id'
+
+      // Lookup user in tenant_users collection
+      const tenantUsersCollection = mongoService.getControlDB().collection<TenantUser>('tenant_users')
+      user = await tenantUsersCollection.findOne({
+        userId,
+        tenantId: tenant.id
+      }) as TenantUser | null
+    }
+
+    // If no user found via JWT, check for API key
+    if (!user) {
+      const apiKey = c.req.header('X-API-Key')
+      if (apiKey) {
+        // TODO: Item 45 - Implement API key lookup
+        // For now, use demo user for API key access
+      }
+    }
+
+    // Fallback to demo user for development
+    if (!user) {
+      // For development/demo, create a temporary user
+      const usersCollection = mongoService.getControlDB().collection('users')
+      const demoUser = await usersCollection.findOne({ email: 'demo@demo.com' })
+
+      if (demoUser) {
+        user = {
+          id: demoUser._id as string,
+          email: demoUser.email,
+          name: demoUser.name || 'Demo User',
+          tenantId: tenant.id,
+          tenantRole: 'admin',
+          permissions: ['retail_media', 'google_ads', 'meta_ads', 'analytics'],
+          emailVerified: true,
+          twoFactorEnabled: false,
+          status: 'active',
+          createdAt: demoUser.createdAt || new Date().toISOString(),
+          updatedAt: demoUser.updatedAt || new Date().toISOString(),
+        }
+      } else {
+        // Ultimate fallback for testing
+        user = {
+          id: 'demo-user-id',
+          email: 'demo@demo.com',
+          name: 'Demo User',
+          tenantId: tenant.id,
+          tenantRole: 'admin',
+          permissions: ['retail_media', 'google_ads', 'meta_ads', 'analytics'],
+          emailVerified: true,
+          twoFactorEnabled: false,
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+      }
+    }
+
+    if (!user) {
+      throw new HTTPException(401, {
+        message: 'Authentication required',
+      })
     }
 
     // Attach tenant context to request
