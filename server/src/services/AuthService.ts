@@ -323,18 +323,8 @@ export class AuthService {
    */
   async refreshAccessToken(refreshToken: string): Promise<LoginResult> {
     try {
-      // Verify refresh token
-      const payload = this.verifyToken(refreshToken)
-
-      if (!payload || payload.type !== 'refresh') {
-        return {
-          success: false,
-          error: 'Invalid refresh token'
-        }
-      }
-
-      // Get session
-      const session = await userService.getSession(refreshToken)
+      // Get session by refresh token
+      const session = await userService.getSessionByRefreshToken(refreshToken)
 
       if (!session) {
         return {

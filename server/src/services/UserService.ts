@@ -262,6 +262,22 @@ export class UserService {
   }
 
   /**
+   * Get session by refresh token
+   */
+  async getSessionByRefreshToken(refreshToken: string): Promise<Session | null> {
+    try {
+      const session = await this.sessionsCollection.findOne({
+        refreshToken,
+        expiresAt: { $gt: new Date() }
+      })
+      return session
+    } catch (error) {
+      logger.error('Error fetching session by refresh token', error)
+      return null
+    }
+  }
+
+  /**
    * Update session activity
    */
   async updateSessionActivity(sessionToken: string): Promise<void> {
