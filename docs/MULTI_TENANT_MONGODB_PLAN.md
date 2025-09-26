@@ -188,39 +188,6 @@ This document outlines the complete implementation plan for migrating from in-me
 
 ---
 
-## Phase 7: Performance & Monitoring
-**Status: PENDING**
-**Target Start: TBD**
-
-### Implementation Tasks:
-1. [ ] Add MongoDB connection pooling
-2. [ ] Create monitoring dashboards
-3. [ ] Add alerting system
-4. [ ] Implement query optimization
-5. [ ] Add request tracing
-6. [ ] Create performance metrics
-7. [ ] Build SLA monitoring
-
-### Automated Testing:
-- [ ] Load testing (1000+ concurrent users)
-- [ ] Stress testing (resource limits)
-- [ ] Failover testing (DB failure)
-- [ ] Recovery testing (backup restore)
-- [ ] Performance regression tests
-- [ ] Cache invalidation tests
-
-### User Testing:
-- [ ] Monitor real-time metrics
-- [ ] Review performance dashboards
-- [ ] Configure alerts
-- [ ] Test under heavy load
-- [ ] Verify SLA compliance
-- [ ] Review trace logs
-- [ ] Test failover scenario
-- [ ] Validate backup/restore
-
----
-
 ## Phase 8: Data Migration & Deployment
 **Status: PENDING**
 **Target Start: TBD**
@@ -376,6 +343,21 @@ This document outlines the complete implementation plan for migrating from in-me
 - [ ] Add rate limiting per key
 - [ ] Implement key expiration
 - [ ] Create API documentation
+
+### Performance & Monitoring
+- [ ] Add MongoDB connection pooling
+- [ ] Create monitoring dashboards
+- [ ] Add alerting system
+- [ ] Implement query optimization
+- [ ] Add request tracing
+- [ ] Create performance metrics
+- [ ] Build SLA monitoring
+- [ ] Load testing (1000+ concurrent users)
+- [ ] Stress testing (resource limits)
+- [ ] Failover testing (DB failure)
+- [ ] Recovery testing (backup restore)
+- [ ] Performance regression tests
+- [ ] Cache invalidation tests
 
 ### Notes:
 - These are nice-to-have features that can be implemented when needed
