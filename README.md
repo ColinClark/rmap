@@ -40,6 +40,10 @@ A comprehensive multi-tenant SaaS marketing platform for managing retail media c
 
 ## 🛠 Tech Stack
 
+### Monorepo Architecture
+- **Turborepo** for efficient builds and caching
+- **npm workspaces** for package management
+
 ### Frontend
 - **React 18** with TypeScript
 - **Vite** for fast development
@@ -50,74 +54,74 @@ A comprehensive multi-tenant SaaS marketing platform for managing retail media c
 
 ### Backend
 - **Hono** framework (TypeScript)
+- **MongoDB Atlas** for data persistence
 - **Multi-tenant middleware** for isolation
 - **Zod** for validation
-- **JWT** authentication
-- **PostgreSQL** ready (with RLS)
+- **JWT** authentication with refresh tokens
 - **Redis** ready for caching
 
 ## 📦 Installation
 
 ### Prerequisites
-- Node.js 18+ 
-- npm or yarn
-- PostgreSQL (optional for development)
-- Redis (optional for development)
+- Node.js 20+ and npm 10+
+- MongoDB Atlas account (free tier works)
+- Git
 
 ### Quick Start
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/marketing-platform.git
-cd marketing-platform
+git clone <repository-url>
+cd rmap
 ```
 
 2. **Install dependencies**
 ```bash
-# Frontend
+# Install all monorepo dependencies from root
 npm install
-
-# Backend
-cd server
-npm install
-cd ..
 ```
 
-3. **Start development servers**
+3. **Configure environment**
 ```bash
-# Terminal 1 - Frontend (http://localhost:3000)
-npm run dev
+# Copy environment template
+cp .env.example .env
 
-# Terminal 2 - Backend (http://localhost:4000)
-cd server
-npm run dev
+# Edit .env with your MongoDB connection string and JWT secret
 ```
 
-4. **Access the application**
-- Navigate to http://localhost:3000
-- Click "Use demo account" or login with any email/password
-- Explore the platform!
+4. **Start development servers**
+```bash
+# Start all services (backend + web + admin)
+npm run dev
+
+# Or start individually:
+npm run dev:server  # Backend at http://localhost:4000
+npm run dev:web     # Web app at http://localhost:3000
+npm run dev:admin   # Admin at http://localhost:3001
+```
+
+5. **Access the applications**
+- **Main App**: http://localhost:3000
+  - Demo: `demo@example.com` / `Demo123`
+- **Admin Portal**: http://localhost:3001
+  - Admin: `admin@rmap.com` / `Admin123`
 
 ## 🏗 Project Structure
 
+This is a monorepo managed by Turborepo:
+
 ```
-├── src/                    # Frontend source
-│   ├── workflows/          # Workflow modules (retail media, etc.)
-│   ├── pages/             # Page components
-│   ├── layouts/           # Layout wrappers
-│   ├── contexts/          # React contexts (Auth, Tenant)
-│   ├── components/        # Reusable UI components
-│   └── services/          # API services
-│
-├── server/                # Backend source
-│   ├── src/
-│   │   ├── routes/        # API endpoints
-│   │   ├── middleware/    # Tenant isolation, auth
-│   │   ├── types/         # TypeScript definitions
-│   │   └── index.ts       # Server entry point
-│   └── package.json
-│
-└── package.json           # Frontend package
+rmap/
+├── apps/
+│   ├── web/                 # Main customer application (port 3000)
+│   └── admin/              # Platform admin portal (port 3001)
+├── packages/
+│   ├── types/              # Shared TypeScript types (@rmap/types)
+│   └── ui/                 # Shared UI components (@rmap/ui)
+├── server/                 # Backend API server (port 4000)
+├── docs/                   # Comprehensive documentation
+├── turbo.json             # Turborepo configuration
+└── package.json           # Root workspace configuration
 ```
 
 ## 🔐 Multi-Tenant Implementation
@@ -132,9 +136,21 @@ The platform identifies tenants through multiple methods:
 
 ### Data Isolation
 - All API requests are filtered by tenant ID
-- Database queries use Row Level Security (RLS)
+- MongoDB collections include tenantId field
 - File storage is partitioned by tenant
 - Cache keys are prefixed with tenant ID
+- Separate databases per tenant (future)
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the `/docs` directory:
+
+- **[Overview](./docs/OVERVIEW.md)** - High-level platform introduction
+- **[Architecture](./docs/ARCHITECTURE.md)** - Technical architecture deep-dive
+- **[API Reference](./docs/API_REFERENCE.md)** - Complete API documentation
+- **[Developer Guide](./docs/DEVELOPER.md)** - Setup and development workflows
+- **[Admin Guide](./docs/ADMIN.md)** - Platform administration manual
+- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment instructions
 
 ## 🚢 Deployment
 

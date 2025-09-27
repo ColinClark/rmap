@@ -364,6 +364,48 @@ export class UserService {
   }
 
   /**
+   * Reset password with token
+   */
+  async resetPasswordWithToken(token: string, newPassword: string): Promise<any | null> {
+    try {
+      // Find user with valid token
+      const user = await this.usersCollection.findOne({
+        passwordResetToken: token,
+        passwordResetExpires: { $gt: new Date() }
+      })
+
+      if (!user) {
+        return null
+      }
+
+      // Hash new password
+      const bcrypt = await import('bcrypt')
+      const passwordHash = await bcrypt.hash(newPassword, 10)
+
+      // Update password and clear reset token
+      await this.usersCollection.updateOne(
+        { _id: user._id },
+        {
+          $set: {
+            passwordHash,
+            updatedAt: new Date().toISOString()
+          },
+          $unset: {
+            passwordResetToken: '',
+            passwordResetExpires: ''
+          }
+        }
+      )
+
+      logger.info(`Password reset successful for user ${user.email}`)
+      return user
+    } catch (error) {
+      logger.error('Error resetting password with token:', error)
+      return null
+    }
+  }
+
+  /**
    * Set email verification token
    */
   async setEmailVerificationToken(email: string): Promise<string | null> {
@@ -412,27 +454,6 @@ export class UserService {
     }
   }
 
-  /**
-   * Remove user from tenant
-   */
-  async removeUserFromTenant(userId: string, tenantId: string): Promise<boolean> {
-    try {
-      const result = await this.tenantUsersCollection.deleteOne({
-        userId,
-        tenantId
-      })
-
-      if (result.deletedCount > 0) {
-        logger.info(`Removed user ${userId} from tenant ${tenantId}`)
-        return true
-      }
-
-      return false
-    } catch (error) {
-      logger.error(`Error removing user from tenant`, error)
-      return false
-    }
-  }
 
   /**
    * Verify email

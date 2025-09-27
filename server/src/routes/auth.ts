@@ -37,6 +37,17 @@ const refreshSchema = z.object({
   refreshToken: z.string()
 })
 
+// Forgot password schema
+const forgotPasswordSchema = z.object({
+  email: z.string().email()
+})
+
+// Reset password schema
+const resetPasswordSchema = z.object({
+  token: z.string(),
+  newPassword: z.string().min(8)
+})
+
 /**
  * POST /auth/login
  * Login user
@@ -153,6 +164,72 @@ authRoutes.post('/refresh', zValidator('json', refreshSchema), async (c) => {
 })
 
 /**
+ * POST /auth/forgot-password
+ * Request password reset
+ */
+authRoutes.post('/forgot-password', zValidator('json', forgotPasswordSchema), async (c) => {
+  const { email } = c.req.valid('json')
+
+  try {
+    // Generate password reset token
+    const token = await userService.setPasswordResetToken(email)
+
+    if (!token) {
+      // Don't reveal if email exists or not
+      return c.json({ success: true, message: 'If an account exists, a reset email has been sent' })
+    }
+
+    // Get user's tenant for email branding
+    const user = await userService.getUser(email)
+    const tenantName = 'RMAP Platform' // Default tenant name
+
+    // Send password reset email
+    await emailService.sendPasswordResetEmail(email, token, tenantName)
+
+    logger.info(`Password reset email sent to ${email}`)
+
+    return c.json({
+      success: true,
+      message: 'If an account exists, a reset email has been sent'
+    })
+  } catch (error) {
+    logger.error('Forgot password error:', error)
+    // Don't reveal internal errors
+    return c.json({
+      success: true,
+      message: 'If an account exists, a reset email has been sent'
+    })
+  }
+})
+
+/**
+ * POST /auth/reset-password
+ * Reset password with token
+ */
+authRoutes.post('/reset-password', zValidator('json', resetPasswordSchema), async (c) => {
+  const { token, newPassword } = c.req.valid('json')
+
+  try {
+    // Verify token and reset password
+    const result = await userService.resetPasswordWithToken(token, newPassword)
+
+    if (!result) {
+      return c.json({ error: 'Invalid or expired reset token' }, 400)
+    }
+
+    logger.info(`Password reset successful for user ${result.email}`)
+
+    return c.json({
+      success: true,
+      message: 'Password has been reset successfully'
+    })
+  } catch (error) {
+    logger.error('Reset password error:', error)
+    return c.json({ error: 'Failed to reset password' }, 500)
+  }
+})
+
+/**
  * POST /auth/logout
  * Logout user
  */
@@ -238,113 +315,6 @@ authRoutes.get('/me', authMiddleware, async (c) => {
   })
 })
 
-/**
- * POST /auth/forgot-password
- * Request password reset
- */
-authRoutes.post('/forgot-password',
-  zValidator('json', z.object({
-    email: z.string().email()
-  })),
-  async (c) => {
-    const { email } = c.req.valid('json')
-
-    try {
-      // Get user by email
-      const user = await userService.getUser(email)
-
-      if (user) {
-        // Generate reset token
-        const resetToken = await userService.setPasswordResetToken(email)
-
-        if (resetToken) {
-          // Get tenant info for email branding
-          const userTenants = await userService.getUserTenants(user._id!)
-          const tenantId = userTenants[0]?.tenantId
-          const tenant = tenantId ? await tenantService.getTenant(tenantId) : null
-          const tenantName = tenant?.name || 'RMAP Platform'
-
-          // Send password reset email
-          await emailService.sendPasswordResetEmail(email, resetToken, tenantName)
-
-          logger.info(`Password reset email sent to ${email}`)
-        }
-      }
-
-      // Always return success to prevent email enumeration
-      return c.json({
-        success: true,
-        message: 'If an account exists with this email, a password reset link has been sent.'
-      })
-    } catch (error) {
-      logger.error('Error in forgot-password', error)
-      // Still return success to prevent email enumeration
-      return c.json({
-        success: true,
-        message: 'If an account exists with this email, a password reset link has been sent.'
-      })
-    }
-  }
-)
-
-/**
- * POST /auth/reset-password
- * Reset password with token
- */
-authRoutes.post('/reset-password',
-  zValidator('json', z.object({
-    token: z.string(),
-    newPassword: z.string().min(8)
-  })),
-  async (c) => {
-    const { token, newPassword } = c.req.valid('json')
-
-    try {
-      // Find user with valid reset token
-      const usersCollection = userService['usersCollection']
-      const user = await usersCollection.findOne({
-        passwordResetToken: token,
-        passwordResetExpires: { $gt: new Date() }
-      })
-
-      if (!user) {
-        return c.json({
-          error: 'Invalid or expired reset token'
-        }, 400)
-      }
-
-      // Hash new password
-      const passwordHash = await bcrypt.hash(newPassword, 10)
-
-      // Update user password and clear reset token
-      await usersCollection.updateOne(
-        { _id: user._id },
-        {
-          $set: {
-            passwordHash,
-            updatedAt: new Date().toISOString()
-          },
-          $unset: {
-            passwordResetToken: '',
-            passwordResetExpires: ''
-          }
-        }
-      )
-
-      logger.info(`Password reset successful for user ${user.email}`)
-
-      return c.json({
-        success: true,
-        message: 'Password has been reset successfully. You can now login with your new password.'
-      })
-    } catch (error) {
-      logger.error('Error in reset-password', error)
-      return c.json({
-        error: 'Failed to reset password'
-      }, 500)
-    }
-  }
-)
 
 /**
  * POST /auth/verify-email

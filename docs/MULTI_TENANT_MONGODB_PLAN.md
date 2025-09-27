@@ -155,18 +155,24 @@ This document outlines the complete implementation plan for migrating from in-me
 ---
 
 ## Phase 6: Admin Portal
-**Status: PENDING**
-**Target Start: TBD**
+**Status: IN PROGRESS**
+**Target Start: 2025-09-26**
 
 ### Implementation Tasks:
 1. [ ] Create platform admin authentication
 2. [ ] Build tenant management interface
-3. [ ] Add usage statistics dashboard
-4. [ ] Create tenant suspension tools
-5. [ ] Implement compliance reports
-6. [ ] Add system health monitoring
-7. [ ] Create admin audit logs
-8. [ ] Build admin API endpoints
+3. [ ] Add app/utility entitlement system
+   - [ ] Define available apps/utilities (tiles)
+   - [ ] Create entitlement management UI
+   - [ ] Implement per-tenant tile configuration
+   - [ ] Add tile activation/deactivation
+   - [ ] Build tile permission system
+4. [ ] Add usage statistics dashboard
+5. [ ] Create tenant suspension tools
+6. [ ] Implement compliance reports
+7. [ ] Add system health monitoring
+8. [ ] Create admin audit logs
+9. [ ] Build admin API endpoints
 
 ### Automated Testing:
 - [ ] Test admin auth separation

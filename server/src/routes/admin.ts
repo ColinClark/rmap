@@ -38,13 +38,14 @@ adminRoutes.post('/auth/login',
 adminRoutes.use('/*', requireAdminAuth)
 
 // Get current admin info
-adminRoutes.get('/me', async (c) => {
+adminRoutes.get('/me', requireAdminAuth, async (c) => {
   const admin = c.get('admin')
   return c.json({ admin })
 })
 
 // Platform statistics (requires view_analytics permission)
 adminRoutes.get('/stats',
+  requireAdminAuth,
   requireAdminPermission('view_analytics'),
   async (c) => {
     const stats = await platformAdminService.getPlatformStats()
@@ -56,6 +57,7 @@ adminRoutes.get('/stats',
 
 // Get all tenants
 adminRoutes.get('/tenants',
+  requireAdminAuth,
   requireAdminPermission('view_tenants'),
   async (c) => {
     const tenants = await tenantService.getAllTenants()
@@ -65,6 +67,7 @@ adminRoutes.get('/tenants',
 
 // Get tenant details
 adminRoutes.get('/tenants/:tenantId',
+  requireAdminAuth,
   requireAdminPermission('view_tenants'),
   async (c) => {
     const tenantId = c.req.param('tenantId')
@@ -83,6 +86,7 @@ adminRoutes.get('/tenants/:tenantId',
 
 // Update tenant
 adminRoutes.patch('/tenants/:tenantId',
+  requireAdminAuth,
   requireAdminPermission('manage_tenants'),
   zValidator('json', z.object({
     name: z.string().optional(),
@@ -119,6 +123,7 @@ adminRoutes.patch('/tenants/:tenantId',
 
 // Suspend/activate tenant
 adminRoutes.post('/tenants/:tenantId/:action',
+  requireAdminAuth,
   requireAdminPermission('manage_tenants'),
   async (c) => {
     const tenantId = c.req.param('tenantId')
@@ -153,6 +158,7 @@ adminRoutes.post('/tenants/:tenantId/:action',
 
 // Get all apps
 adminRoutes.get('/apps',
+  requireAdminAuth,
   requireAdminPermission('view_tenants'),
   async (c) => {
     const apps = await appEntitlementService.getAllApps()
@@ -162,6 +168,7 @@ adminRoutes.get('/apps',
 
 // Create/update app
 adminRoutes.put('/apps/:appId',
+  requireAdminAuth,
   requireAdminPermission('manage_apps'),
   zValidator('json', z.object({
     name: z.string(),
@@ -214,6 +221,7 @@ adminRoutes.put('/apps/:appId',
 
 // Grant app to tenant
 adminRoutes.post('/tenants/:tenantId/apps/:appId/grant',
+  requireAdminAuth,
   requireAdminPermission('manage_apps'),
   zValidator('json', z.object({
     config: z.record(z.any()).optional(),
@@ -254,6 +262,7 @@ adminRoutes.post('/tenants/:tenantId/apps/:appId/grant',
 
 // Revoke app from tenant
 adminRoutes.post('/tenants/:tenantId/apps/:appId/revoke',
+  requireAdminAuth,
   requireAdminPermission('manage_apps'),
   async (c) => {
     const tenantId = c.req.param('tenantId')
@@ -285,6 +294,7 @@ adminRoutes.post('/tenants/:tenantId/apps/:appId/revoke',
 
 // Get tenant's entitled apps
 adminRoutes.get('/tenants/:tenantId/apps',
+  requireAdminAuth,
   requireAdminPermission('view_tenants'),
   async (c) => {
     const tenantId = c.req.param('tenantId')
@@ -297,6 +307,7 @@ adminRoutes.get('/tenants/:tenantId/apps',
 
 // Get all admins
 adminRoutes.get('/admins',
+  requireAdminAuth,
   requireAdminPermission('manage_admins'),
   async (c) => {
     const admins = await platformAdminService.getAllAdmins()
@@ -306,6 +317,7 @@ adminRoutes.get('/admins',
 
 // Create new admin
 adminRoutes.post('/admins',
+  requireAdminAuth,
   requireAdminPermission('manage_admins'),
   zValidator('json', z.object({
     email: z.string().email(),
@@ -342,6 +354,7 @@ adminRoutes.post('/admins',
 
 // Update admin
 adminRoutes.patch('/admins/:adminId',
+  requireAdminAuth,
   requireAdminPermission('manage_admins'),
   zValidator('json', z.object({
     name: z.string().optional(),
@@ -375,6 +388,7 @@ adminRoutes.patch('/admins/:adminId',
 
 // Get admin activity logs
 adminRoutes.get('/logs',
+  requireAdminAuth,
   requireAdminPermission('view_logs'),
   async (c) => {
     const limit = parseInt(c.req.query('limit') || '100')

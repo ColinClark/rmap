@@ -16,23 +16,49 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-### Development
+### Development (Monorepo)
 ```bash
-# Frontend
-npm install          # Install dependencies
-npm run dev          # Start frontend dev server on port 3000
-npm run build        # Build for production
+# Install all dependencies (from root)
+npm install
 
-# Backend
+# Run both frontend apps with hot reload
+npm run dev                 # Run everything (packages + apps)
+npm run dev:frontend        # Run only web and admin apps
+npm run dev:apps           # Alternative for running all apps
+
+# Run individual apps
+npm run dev:web            # Web app only (port 3000)
+npm run dev:admin          # Admin app only (port 3001)
+
+# Build commands
+npm run build              # Build everything
+npm run build:web          # Build web app only
+npm run build:admin        # Build admin app only
+
+# Backend (separate terminal)
 cd server
-npm install          # Install backend dependencies
-npm run dev          # Start backend dev server on port 4000
-npm run build        # Build backend for production
-npm run typecheck    # Run TypeScript type checking
-npm run start        # Start production server
+npm install
+npm run dev                # Start backend on port 4000
+npm run test              # Run all backend tests
+npm run setup:demo-tenant  # Create demo tenant and user
 ```
 
 ## Architecture
+
+### Monorepo Structure (NEW!)
+The project now uses a monorepo architecture with Turborepo:
+```
+rmap/
+├── apps/
+│   ├── web/              # Main web application (port 3000)
+│   └── admin/            # Admin portal (port 3001)
+├── packages/
+│   ├── types/            # Shared TypeScript types (@rmap/types)
+│   └── ui/               # Shared UI components (@rmap/ui)
+├── server/               # Backend API (port 4000)
+├── turbo.json           # Turborepo configuration
+└── package.json         # Root workspace configuration
+```
 
 ### Multi-Tenant Structure
 The application is a multi-tenant SaaS platform with:
@@ -40,6 +66,8 @@ The application is a multi-tenant SaaS platform with:
 - Subscription-based feature access
 - Usage tracking and limits enforcement
 - Team management with role-based permissions
+- MongoDB Atlas for data persistence
+- Platform admin portal for tenant management
 
 ### Frontend Architecture
 
@@ -260,29 +288,147 @@ describe('Campaign API', () => {
 4. Initialize default settings
 5. Send welcome email with setup instructions
 
+## Current Status (Session Date: 2025-09-26)
+
+### ✅ What's Working
+1. **Monorepo Architecture**
+   - Turborepo build pipeline with caching
+   - Shared packages (@rmap/types, @rmap/ui)
+   - Independent app deployment capability
+   - Hot reload for all apps
+
+2. **Backend (MongoDB + Hono)**
+   - Multi-tenant MongoDB with Atlas
+   - JWT authentication working
+   - Tenant isolation middleware
+   - Platform admin authentication
+   - App entitlement system
+   - All tests passing (Phase 1, 2, 4, 6)
+
+3. **Admin Portal (NEW!)**
+   - Full admin UI at port 3001
+   - Login: admin@rmap.com / Admin123
+   - Dashboard, Tenants, Apps, Admins, Settings pages
+   - App catalog with entitlement management
+   - Tailwind CSS v3 styling
+
+4. **Web App**
+   - Login: test@example.com / password123
+   - Retail Media Workflow (8 steps)
+   - Data Query tool
+   - MCP integrations (SynthiePop, Statista)
+
+### ⚠️ Known Issues & Fixes Applied
+
+1. **CORS Issue (FIXED)**
+   - Problem: Admin app couldn't reach backend
+   - Solution: Added port 3001 to CORS allowed origins
+   ```typescript
+   cors({ origin: ['http://localhost:3000', 'http://localhost:3001', ...] })
+   ```
+
+2. **SWC Native Binding Error (FIXED)**
+   - Problem: @vitejs/plugin-react-swc failed to load
+   - Solution: Switched to @vitejs/plugin-react for both apps
+
+3. **Tailwind CSS Issues (FIXED)**
+   - Problem: CSS not loading, border-border utility not found
+   - Solution: Downgraded to Tailwind v3, added proper color config
+   - Fixed admin layout positioning with flexbox
+
+4. **Workspace Protocol Issue (FIXED)**
+   - Problem: npm doesn't support workspace:* protocol
+   - Solution: Use file: protocol for local packages
+
+### 📝 Login Credentials
+```
+# Admin Portal (port 3001)
+Email: admin@rmap.com
+Password: Admin123
+
+# Web App (port 3000)
+Email: demo@example.com
+Password: Demo123
+
+# Backend runs on port 4000
+```
+
+### ✅ Completed Work (This Session)
+- ✅ Phase 3 (User Management) - ALL COMPLETE
+  - Registration with email verification
+  - Password reset flow with email tokens
+  - RBAC implementation with permissions
+  - Session persistence on refresh
+  - Auto-logout on token expiry
+  - User invitation system
+- ✅ Phase 4 (Tenant Management) - COMPLETE
+- ✅ Phase 6 (Admin Portal) - COMPLETE
+- ✅ Comprehensive Documentation
+
 ## Recent Updates & Known Issues
 
-### Recent Implementations
-- **Statista MCP Integration**: Full integration with market data API
-- **AI Cohort Builder**: Natural language processing with Claude Sonnet 4
-- **Request Context**: Correlation ID tracking across services
-- **Type Centralization**: Shared types in `src/types/index.ts`
-- **Auto-save Cohorts**: Automatic saving when SQL queries return results
+### Session Achievements (Sep 27, 2025)
+- **Phase 3 Complete**: Full user management system
+- **Phase 4 Complete**: Tenant management with subscriptions
+- **Phase 6 Complete**: Admin portal with app entitlements
+- **Monorepo Migration**: Successfully migrated to Turborepo
+- **Documentation Created**: Complete docs in /docs folder
+- **App Entitlements Working**: 2 default apps in database
 
 ### Performance Optimizations
 - **AudienceRefinement**: Limited to 100 records (prevents browser hang)
 - **LLM Iterations**: Increased from 20 to 50 for complex queries
 - **SSE Streaming**: Real-time response streaming for chat interface
+- **Turbo Caching**: Build caching for faster development
 
-### Known Issues & Fixes
+### Historical Fixes
 1. **Navigation Issues**: Fixed missing imports from '../App'
 2. **Component Naming**: CollaborationPanel (not CampaignExport)
 3. **Session Management**: Statista MCP session handled by server
 4. **Result Counting**: Fixed Statista search result display (items array)
 
+## Troubleshooting Guide
+
+### Common Issues & Solutions
+
+1. **"Failed to fetch" on login**
+   - Ensure backend is running: `cd server && npm run dev`
+   - Check CORS settings include your port
+   - Verify MongoDB connection is active
+
+2. **CSS not loading in admin app**
+   - Restart dev server after Tailwind config changes
+   - Clear browser cache
+   - Ensure using Tailwind v3 (not v4)
+
+3. **Module not found errors**
+   - Run `npm install` from root directory
+   - Check package.json for correct file: paths
+   - Rebuild packages: `npm run build`
+
+4. **SWC errors during build**
+   - Use @vitejs/plugin-react instead of plugin-react-swc
+   - Run `npm rebuild` to rebuild native modules
+
+5. **Type errors in shared packages**
+   - Build types package first: `cd packages/types && npm run build`
+   - Check tsconfig extends paths are correct
+
 ## Important Notes
 - Always use the structured logging system (Logger class)
 - Check for existing components before creating new ones
-- Types should be imported from `../types` not `../App`
+- Types should be imported from `@rmap/types` in monorepo
 - Limit database queries to reasonable sizes for UI display
 - Use environment variables for all API keys and secrets
+- Run backend BEFORE starting frontend apps
+- Both apps need backend running for auth to work
+- Admin portal has SEPARATE auth from main app
+- Apps must be initialized in database (run server once)
+
+## 📚 Documentation Links
+
+- **[Overview](./docs/OVERVIEW.md)** - Start here
+- **[Architecture](./docs/ARCHITECTURE.md)** - Technical deep-dive
+- **[API Reference](./docs/API_REFERENCE.md)** - Complete API docs
+- **[Developer Guide](./docs/DEVELOPER.md)** - Setup & development
+- **[Admin Guide](./docs/ADMIN.md)** - Platform administration
