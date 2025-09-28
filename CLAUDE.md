@@ -143,6 +143,14 @@ src/
   - URL: https://api.statista.ai/v1
   - Tools: search-statistics, get-chart-data-by-id
 
+#### Email Service
+- **EmailService** - Handles all email operations
+  - Development: Uses Ethereal (test email service) - check server logs for credentials to view emails
+  - Production: Uses SMTP settings from environment variables (SMTP_HOST, SMTP_PORT, etc.)
+  - Located at: `/server/src/services/EmailService.ts`
+  - Automatically initialized on server startup
+  - In dev, emails are not actually sent but can be viewed at https://ethereal.email/messages
+
 #### Data Models
 ```typescript
 // Core tenant structure

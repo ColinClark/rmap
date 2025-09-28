@@ -29,6 +29,7 @@ const appLogger = new Logger('Server')
 // Import routes
 import { authRoutes } from './routes/auth'
 import { adminRoutes } from './routes/admin'
+import { tenantAdminRoutes } from './routes/tenant-admin'
 import { audienceRoutes } from './routes/audience'
 import { campaignRoutes } from './routes/campaign'
 import { analyticsRoutes } from './routes/analytics'
@@ -78,6 +79,9 @@ app.use('/api/*', tenantRateLimitMiddleware)
 
 // Tenant management routes
 app.route('/api/tenant', tenantRoutes)
+
+// Tenant admin routes (for managing groups and permissions)
+app.route('/api/tenant-admin', tenantAdminRoutes)
 
 // API routes (tenant-scoped)
 app.route('/api/audience', audienceRoutes)

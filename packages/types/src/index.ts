@@ -153,26 +153,20 @@ export interface AppTile {
     }
   }
 
-  // Requirements
-  requirements?: {
-    minPlan?: string
-    requiredApps?: string[]
-    technicalRequirements?: string[]
-  }
+  // Availability
+  availableForPlans: string[]
+  availableRegions?: string[]
+  requiredFeatures?: string[]
 
   // Metadata
   version: string
-  releaseDate?: Date | string
-  lastUpdated?: Date | string
-  releaseNotes?: string
-  documentation?: string
-  supportEmail?: string
-  vendor?: string
-
-  availableForPlans: string[]
-  requiredAddons?: string[]
-  betaTesters?: string[]
-  isHidden?: boolean
+  releaseDate?: string
+  lastUpdated?: string
+  vendor?: {
+    name: string
+    website?: string
+    supportEmail?: string
+  }
 
   createdAt: Date | string
   updatedAt: Date | string
@@ -181,84 +175,79 @@ export interface AppTile {
 export interface SetupField {
   name: string
   label: string
-  type: 'text' | 'password' | 'select' | 'checkbox' | 'json'
+  type: 'text' | 'password' | 'select' | 'checkbox' | 'url'
   required: boolean
   placeholder?: string
   options?: { label: string; value: string }[]
-  validation?: string
-  encrypted?: boolean
+  helpText?: string
 }
 
+// App Entitlement Types
 export interface TenantAppEntitlement {
   _id?: string
   tenantId: string
   appId: string
-  status: 'active' | 'inactive' | 'suspended' | 'trial'
-  activatedAt?: Date | string
+  status: 'active' | 'suspended' | 'expired'
+  grantedAt: Date | string
+  grantedBy: string // Admin who granted the app
   expiresAt?: Date | string
-  trialEndsAt?: Date | string
+  suspendedAt?: Date | string
+  suspendedReason?: string
+
+  // Configuration specific to this tenant
   config?: Record<string, any>
-  limits?: Record<string, number>
+
+  // Usage limits specific to this entitlement
+  limits?: {
+    users?: number
+    apiCalls?: number
+    storage?: number
+    customLimits?: Record<string, number>
+  }
+
+  // Current usage
   usage?: {
-    lastUsed?: Date | string
-    totalUses?: number
-    monthlyUses?: number
-    dailyUses?: number
+    users?: number
+    apiCalls?: number
+    storage?: number
+    customUsage?: Record<string, number>
+    lastUpdated: Date | string
   }
-  enabledForUsers?: string[]
-  disabledForUsers?: string[]
-  requiredRole?: string
-  createdBy: string
-  updatedBy?: string
-  createdAt: Date | string
-  updatedAt: Date | string
+
+  // Users within the tenant who can access this app
+  enabledForUsers?: string[] // User IDs, empty = all users
+  requiredRole?: string // Minimum role required
 }
 
-// Platform Statistics
-export interface PlatformStats {
-  tenants: {
-    total: number
-    active: number
-    trial: number
-    suspended: number
-    byPlan: Record<string, number>
-  }
-  users: {
-    total: number
-    activeDaily: number
-    activeMonthly: number
-  }
-  apps: {
-    total: number
-    active: number
-    mostUsed: { appId: string; name: string; uses: number }[]
-  }
-  revenue: {
-    mrr: number
-    arr: number
-    churnRate: number
-    growthRate: number
-  }
-  system: {
-    uptime: number
-    apiLatency: number
-    errorRate: number
-    storageUsed: number
-  }
+// Activity/Audit Types
+export interface TenantActivity {
+  _id?: string
+  tenantId: string
+  userId: string
+  userEmail: string
+  action: string
+  resource: string
+  resourceId?: string
+  details?: Record<string, any>
+  ipAddress?: string
+  userAgent?: string
+  timestamp: Date | string
 }
 
-// API Response Types
-export interface ApiResponse<T> {
-  success: boolean
-  data?: T
-  error?: string
-  message?: string
+// Invitation Types
+export interface TenantInvitation {
+  _id?: string
+  id: string
+  tenantId: string
+  email: string
+  role: string
+  invitedBy: string
+  invitedAt: Date | string
+  expiresAt: Date | string
+  acceptedAt?: Date | string
+  token: string
+  status: 'pending' | 'accepted' | 'expired' | 'cancelled'
 }
 
-export interface PaginatedResponse<T> {
-  items: T[]
-  total: number
-  page: number
-  pageSize: number
-  totalPages: number
-}
+// Export all tenant admin types
+export * from './tenant-admin'

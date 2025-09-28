@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Building2, Package, Users, TrendingUp, AlertCircle } from 'lucide-react'
+import AuthUtils from '../utils/auth'
 
 interface DashboardStats {
   totalTenants: number
@@ -25,12 +26,7 @@ export default function DashboardPage() {
 
   const fetchDashboardStats = async () => {
     try {
-      const token = localStorage.getItem('adminToken')
-      const response = await fetch('http://localhost:4000/admin/stats', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+      const response = await AuthUtils.fetchWithAuth('http://localhost:4000/admin/stats')
 
       if (!response.ok) {
         throw new Error('Failed to fetch dashboard stats')

@@ -224,6 +224,20 @@ export class MongoDBService {
       { name: 'usage_events', indexes: [
         { key: { tenantId: 1, timestamp: -1 } },
         { key: { timestamp: 1 }, expireAfterSeconds: 2592000 } // 30 days
+      ]},
+      { name: 'tenant_groups', indexes: [
+        { key: { tenantId: 1 } },
+        { key: { id: 1 }, unique: true }
+      ]},
+      { name: 'permission_notifications', indexes: [
+        { key: { tenantId: 1, status: 1 } },
+        { key: { 'metadata.scheduledFor': 1 } },
+        { key: { recipientId: 1 } }
+      ]},
+      { name: 'tenant_app_entitlements', indexes: [
+        { key: { tenantId: 1, appId: 1 }, unique: true },
+        { key: { status: 1 } },
+        { key: { expiresAt: 1 } }
       ]}
     ];
 

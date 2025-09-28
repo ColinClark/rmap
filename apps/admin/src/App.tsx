@@ -5,6 +5,7 @@ import AdminLayout from './components/AdminLayout'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import TenantsPage from './pages/TenantsPage'
+import TenantEmployeesPage from './pages/TenantEmployeesPage'
 import AppsPage from './pages/AppsPage'
 import AdminsPage from './pages/AdminsPage'
 import SettingsPage from './pages/SettingsPage'
@@ -25,6 +26,7 @@ function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="tenants" element={<TenantsPage />} />
+          <Route path="tenants/:tenantId/employees" element={<TenantEmployeesPage />} />
           <Route path="apps" element={<AppsPage />} />
           <Route path="admins" element={<AdminsPage />} />
           <Route path="settings" element={<SettingsPage />} />

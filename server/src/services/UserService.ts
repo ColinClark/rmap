@@ -6,6 +6,8 @@ import { Collection, ObjectId } from 'mongodb'
 import { mongoService } from './mongodb'
 import { Logger } from '../utils/logger'
 import { TenantUser, type Tenant } from '../types/tenant'
+import type { EnhancedTenantUser, AppPermission, TenantGroup } from '@rmap/types'
+import { groupService } from './GroupService'
 import * as crypto from 'crypto'
 
 const logger = new Logger('UserService')
@@ -94,21 +96,26 @@ export class UserService {
     }
 
     const result = await this.usersCollection.insertOne(user as any)
-    user._id = result.insertedId.toString()
+    user._id = result.insertedId
 
     logger.info(`Created new user: ${user.email}`)
     return user
   }
 
   /**
-   * Add user to tenant
+   * Add user to tenant (enhanced with group support)
    */
   async addUserToTenant(
     userId: string,
     tenantId: string,
     role: TenantUser['tenantRole'] = 'member',
-    permissions: string[] = []
-  ): Promise<TenantUser> {
+    permissions: string[] = [],
+    data?: {
+      phoneNumber?: string
+      companyRole?: string
+      groups?: string[]
+    }
+  ): Promise<EnhancedTenantUser> {
     logger.info(`Adding user ${userId} to tenant ${tenantId}`)
     const user = await this.getUser(userId)
     if (!user) {
@@ -116,23 +123,38 @@ export class UserService {
       throw new Error('User not found')
     }
 
-    const tenantUser: TenantUser = {
+    // Extract email domain for validation
+    const emailDomain = user.email.split('@')[1]?.toLowerCase()
+
+    const tenantUser: any = {
       id: `tu_${Date.now()}`,
-      userId: user._id!,
+      userId,  // Add the userId field for the index
+      tenantId,  // Add the tenantId field for the index
       email: user.email,
+      emailDomain,
       name: user.name,
-      tenantId,
-      tenantRole: role,
-      permissions,
-      emailVerified: user.emailVerified,
-      twoFactorEnabled: user.twoFactorEnabled,
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      phoneNumber: data?.phoneNumber,
+      companyRole: data?.companyRole,
+      tenantRole: role === 'owner' || role === 'admin'
+        ? role
+        : 'employee', // Map old roles to new schema
+      groups: data?.groups || [],
+      directAppPermissions: [],
+      effectivePermissions: {
+        lastCalculated: new Date().toISOString(),
+        apps: {}
+      }
     }
 
-    await this.tenantUsersCollection.insertOne(tenantUser as any)
+    await this.tenantUsersCollection.insertOne(tenantUser)
     logger.info(`Added user ${user.email} to tenant ${tenantId} with role ${role}`)
+
+    // Add user to specified groups
+    if (data?.groups && data.groups.length > 0) {
+      for (const groupId of data.groups) {
+        await groupService.addMembers(groupId, [tenantUser.id], tenantUser.id)
+      }
+    }
 
     return tenantUser
   }
@@ -484,6 +506,246 @@ export class UserService {
    */
   private generateToken(): string {
     return crypto.randomBytes(32).toString('hex')
+  }
+
+  /**
+   * Validate email domain for tenant
+   */
+  async validateEmailDomain(
+    email: string,
+    tenantId: string
+  ): Promise<boolean> {
+    try {
+      const emailDomain = email.split('@')[1]?.toLowerCase()
+      if (!emailDomain) return false
+
+      const tenant = await mongoService
+        .getControlDB()
+        .collection('tenants')
+        .findOne({ id: tenantId })
+
+      if (!tenant) return false
+
+      // Check if tenant has domain restrictions
+      const allowedDomains = tenant.allowedEmailDomains || []
+      if (allowedDomains.length === 0) return true // No restrictions
+
+      return allowedDomains.includes(emailDomain)
+    } catch (error) {
+      logger.error('Error validating email domain:', error)
+      return false
+    }
+  }
+
+  /**
+   * Assign direct app permissions to user
+   */
+  async assignDirectAppPermission(
+    userId: string,
+    tenantId: string,
+    appId: string,
+    permissions: string[],
+    assignedBy: string,
+    expiresAt?: Date
+  ): Promise<boolean> {
+    try {
+      const appPermission: AppPermission = {
+        appId,
+        permissions,
+        grantedAt: new Date(),
+        grantedBy: assignedBy,
+        expiresAt
+      }
+
+      // Remove existing permission for this app if it exists
+      await this.tenantUsersCollection.updateOne(
+        { id: userId, tenantId },
+        { $pull: { directAppPermissions: { appId } } }
+      )
+
+      // Add new permission
+      const result = await this.tenantUsersCollection.updateOne(
+        { id: userId, tenantId },
+        {
+          $push: { directAppPermissions: appPermission },
+          $set: { updatedAt: new Date().toISOString() }
+        }
+      )
+
+      // Clear effective permissions cache to force recalculation
+      if (result.modifiedCount > 0) {
+        await this.clearEffectivePermissionsCache(userId, tenantId)
+      }
+
+      return result.modifiedCount > 0
+    } catch (error) {
+      logger.error('Error assigning direct app permission:', error)
+      return false
+    }
+  }
+
+  /**
+   * Calculate effective permissions for user (direct + group permissions)
+   */
+  async calculateEffectivePermissions(
+    userId: string,
+    tenantId: string
+  ): Promise<Record<string, string[]>> {
+    try {
+      const user = await this.tenantUsersCollection.findOne({
+        id: userId,
+        tenantId
+      }) as EnhancedTenantUser
+
+      if (!user) return {}
+
+      const effectivePermissions: Record<string, Set<string>> = {}
+
+      // Add direct permissions
+      if (user.directAppPermissions) {
+        for (const appPerm of user.directAppPermissions) {
+          if (!appPerm.expiresAt || new Date(appPerm.expiresAt) > new Date()) {
+            if (!effectivePermissions[appPerm.appId]) {
+              effectivePermissions[appPerm.appId] = new Set()
+            }
+            appPerm.permissions.forEach(p =>
+              effectivePermissions[appPerm.appId].add(p)
+            )
+          }
+        }
+      }
+
+      // Add group permissions
+      if (user.groups && user.groups.length > 0) {
+        const groups = await groupService.getGroupsByTenant(
+          tenantId,
+          false,
+          true
+        )
+
+        for (const group of groups) {
+          if (user.groups.includes(group.id)) {
+            for (const appPerm of group.appPermissions) {
+              if (!appPerm.expiresAt || new Date(appPerm.expiresAt) > new Date()) {
+                if (!effectivePermissions[appPerm.appId]) {
+                  effectivePermissions[appPerm.appId] = new Set()
+                }
+                appPerm.permissions.forEach(p =>
+                  effectivePermissions[appPerm.appId].add(p)
+                )
+              }
+            }
+          }
+        }
+      }
+
+      // Convert Sets to arrays
+      const result: Record<string, string[]> = {}
+      for (const [appId, perms] of Object.entries(effectivePermissions)) {
+        result[appId] = Array.from(perms)
+      }
+
+      // Cache the calculated permissions
+      await this.tenantUsersCollection.updateOne(
+        { id: userId, tenantId },
+        {
+          $set: {
+            effectivePermissions: {
+              lastCalculated: new Date(),
+              apps: result
+            }
+          }
+        }
+      )
+
+      return result
+    } catch (error) {
+      logger.error('Error calculating effective permissions:', error)
+      return {}
+    }
+  }
+
+  /**
+   * Clear effective permissions cache (when groups or direct permissions change)
+   */
+  async clearEffectivePermissionsCache(
+    userId: string,
+    tenantId: string
+  ): Promise<void> {
+    await this.tenantUsersCollection.updateOne(
+      { id: userId, tenantId },
+      {
+        $unset: { effectivePermissions: '' }
+      }
+    )
+  }
+
+  /**
+   * Bulk invite employees with email domain validation
+   */
+  async bulkInviteEmployees(
+    tenantId: string,
+    invitedBy: string,
+    employees: Array<{
+      email: string
+      name: string
+      groups?: string[]
+      companyRole?: string
+    }>
+  ): Promise<{ success: string[]; failed: Array<{ email: string; reason: string }> }> {
+    const success: string[] = []
+    const failed: Array<{ email: string; reason: string }> = []
+
+    for (const employee of employees) {
+      try {
+        // Validate email domain
+        const isValidDomain = await this.validateEmailDomain(employee.email, tenantId)
+        if (!isValidDomain) {
+          failed.push({
+            email: employee.email,
+            reason: 'Email domain not allowed for this tenant'
+          })
+          continue
+        }
+
+        // Check if user already exists
+        let user = await this.getUser(employee.email)
+        if (!user) {
+          // Create new user with temporary password
+          const tempPassword = crypto.randomBytes(12).toString('hex')
+          const bcrypt = await import('bcrypt')
+          const passwordHash = await bcrypt.hash(tempPassword, 10)
+
+          user = await this.createUser({
+            email: employee.email,
+            name: employee.name,
+            passwordHash,
+            emailVerified: false
+          })
+        }
+
+        // Add to tenant as employee
+        await this.addUserToTenant(
+          user._id!,
+          tenantId,
+          'member', // Will be mapped to 'employee'
+          [],
+          {
+            companyRole: employee.companyRole,
+            groups: employee.groups
+          }
+        )
+
+        success.push(employee.email)
+      } catch (error: any) {
+        failed.push({
+          email: employee.email,
+          reason: error.message || 'Unknown error'
+        })
+      }
+    }
+
+    return { success, failed }
   }
 }
 

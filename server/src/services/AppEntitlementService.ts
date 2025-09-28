@@ -465,6 +465,43 @@ class AppEntitlementService {
   }
 
   /**
+   * Get default initial apps for tenant onboarding based on subscription plan
+   */
+  async getDefaultInitialApps(plan: string): Promise<{appId: string, adminManageable: boolean}[]> {
+    try {
+      this.ensureInitialized()
+
+      switch (plan) {
+        case 'free':
+          return [
+            { appId: 'retail-media-planner', adminManageable: true }
+          ]
+
+        case 'starter':
+          return [
+            { appId: 'retail-media-planner', adminManageable: true }
+          ]
+
+        case 'professional':
+        case 'enterprise':
+        case 'custom':
+          return [
+            { appId: 'retail-media-planner', adminManageable: true },
+            { appId: 'data-query', adminManageable: true }
+          ]
+
+        default:
+          return [
+            { appId: 'retail-media-planner', adminManageable: true }
+          ]
+      }
+    } catch (error) {
+      logger.error('Error getting default initial apps:', error)
+      return []
+    }
+  }
+
+  /**
    * Grant default apps to demo tenant
    */
   async grantDefaultAppsToDemo(): Promise<void> {

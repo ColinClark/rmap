@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Package, Star, Users, TrendingUp, Shield, Zap, Plus, Edit } from 'lucide-react'
 import type { AppTile } from '@rmap/types'
+import AuthUtils from '../utils/auth'
 
 export default function AppsPage() {
   const [apps, setApps] = useState<AppTile[]>([])
@@ -14,12 +15,7 @@ export default function AppsPage() {
 
   const fetchApps = async () => {
     try {
-      const token = localStorage.getItem('adminToken')
-      const response = await fetch('http://localhost:4000/admin/apps', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+      const response = await AuthUtils.fetchWithAuth('http://localhost:4000/admin/apps')
 
       if (!response.ok) {
         throw new Error('Failed to fetch apps')

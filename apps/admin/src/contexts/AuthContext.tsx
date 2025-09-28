@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import type { PlatformAdmin } from '@rmap/types'
+import AuthUtils from '../utils/auth'
 
 interface AuthContextType {
   admin: PlatformAdmin | null
@@ -17,8 +18,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // Check for stored token on mount
-    const storedToken = localStorage.getItem('adminToken')
+    // Check for stored token on mount and validate it
+    const storedToken = AuthUtils.getValidToken()
     const storedAdmin = localStorage.getItem('adminInfo')
 
     if (storedToken && storedAdmin) {
@@ -28,7 +29,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         console.error('Failed to parse admin info:', e)
         localStorage.removeItem('adminInfo')
+        // Clear auth if admin info is corrupted
+        AuthUtils.clearAuth()
       }
+    } else if (!storedToken && storedAdmin) {
+      // Token expired or invalid, clear everything
+      console.log('Token expired or invalid, clearing auth')
+      AuthUtils.clearAuth()
     }
 
     setIsLoading(false)

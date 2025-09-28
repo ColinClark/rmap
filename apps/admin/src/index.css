@@ -53,10 +53,16 @@
   * {
     @apply border-border;
   }
-  html, body, #root {
-    @apply h-full;
+  html {
+    height: 100%;
   }
   body {
+    height: 100%;
     @apply bg-background text-foreground;
+    margin: 0;
+    padding: 0;
+  }
+  #root {
+    height: 100%;
   }
 }
