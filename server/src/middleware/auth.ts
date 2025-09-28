@@ -22,7 +22,7 @@ interface JWTPayload {
 /**
  * Middleware to verify JWT tokens and attach user info to request
  */
-export async function authMiddleware(c: Context, next: Next) {
+export async function authMiddleware(c: Context, next: Next): Promise<Response | void> {
   try {
     // Get token from Authorization header
     const authHeader = c.req.header('Authorization')
@@ -133,3 +133,6 @@ export async function optionalAuthMiddleware(c: Context, next: Next) {
     await next()
   }
 }
+
+// Alias for common naming convention
+export const requireAuth = authMiddleware

@@ -13,6 +13,7 @@ import { VerifyEmail } from './pages/VerifyEmail';
 import { AcceptInvitation } from './pages/AcceptInvitation';
 import { Dashboard } from './pages/Dashboard';
 import { TenantSettings } from './pages/TenantSettings';
+import ProfilePage from './pages/ProfilePage';
 import { RetailMediaWorkflow } from './workflows/RetailMediaWorkflow';
 import { DataQueryWorkflow } from './workflows/DataQueryWorkflow';
 
@@ -51,6 +52,7 @@ export default function App() {
             >
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
+              <Route path="profile" element={<ProfilePage />} />
               
               {/* Workflows */}
               <Route

@@ -216,6 +216,107 @@ export const tenantAPI = {
 }
 
 // Auth API
+// User Profile API (user routes don't require tenant context)
+const USER_BASE = 'http://localhost:4000/user'
+
+export const userAPI = {
+  getProfile: async () => {
+    const accessToken = localStorage.getItem('accessToken');
+    const response = await fetch(`${USER_BASE}/profile`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+    if (!response.ok) throw new Error('Failed to fetch profile');
+    return response.json();
+  },
+
+  updateProfile: async (data: any) => {
+    const accessToken = localStorage.getItem('accessToken');
+    const response = await fetch(`${USER_BASE}/profile`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update profile');
+    return response.json();
+  },
+
+  changePassword: async (data: any) => {
+    const accessToken = localStorage.getItem('accessToken');
+    const response = await fetch(`${USER_BASE}/change-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to change password');
+    }
+    return response.json();
+  },
+
+  enable2FA: async () => {
+    const accessToken = localStorage.getItem('accessToken');
+    const response = await fetch(`${USER_BASE}/enable-2fa`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+    if (!response.ok) throw new Error('Failed to enable 2FA');
+    return response.json();
+  },
+
+  verify2FA: async (token: string) => {
+    const accessToken = localStorage.getItem('accessToken');
+    const response = await fetch(`${USER_BASE}/verify-2fa`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ token }),
+    });
+    if (!response.ok) throw new Error('Failed to verify 2FA');
+    return response.json();
+  },
+
+  disable2FA: async (password: string) => {
+    const accessToken = localStorage.getItem('accessToken');
+    const response = await fetch(`${USER_BASE}/disable-2fa`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ password }),
+    });
+    if (!response.ok) throw new Error('Failed to disable 2FA');
+    return response.json();
+  },
+
+  deleteAccount: async (password: string, confirmation: string) => {
+    const accessToken = localStorage.getItem('accessToken');
+    const response = await fetch(`${USER_BASE}/account`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ password, confirmation }),
+    });
+    if (!response.ok) throw new Error('Failed to delete account');
+    return response.json();
+  },
+}
+
 export const authAPI = {
   login: async (email: string, password: string, tenantId?: string) => {
     const response = await apiCall('/login', {

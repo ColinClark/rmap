@@ -214,10 +214,18 @@ adminRoutes.post('/tenants/:tenantId/onboard-admin',
         return c.json({ error: 'Tenant not found' }, 404)
       }
 
-      // Check if user already exists
-      let user = await userService.getUser(body.admin.email)
+      // Check if user already exists (using email for lookup)
+      let user = await userService.getUserByEmail(body.admin.email)
       let tempPassword = body.admin.temporaryPassword
       let userCreated = false
+
+      // Debug logging
+      logger.info(`Checking for user with email ${body.admin.email}`)
+      logger.info(`User object returned: ${JSON.stringify(user)}`)
+      logger.info(`User found: ${user ? 'Yes' : 'No'}`)
+      if (user) {
+        logger.info(`User details: ID=${user.id || user._id}, email=${user.email}`)
+      }
 
       if (user) {
         logger.info(`User ${body.admin.email} already exists, adding to tenant ${tenantId}`)
@@ -243,8 +251,10 @@ adminRoutes.post('/tenants/:tenantId/onboard-admin',
       }
 
       // Add user to tenant as admin with extra fields
+      // Use the user's UUID if available, otherwise fall back to MongoDB _id
+      const userIdToUse = user.id || user._id!.toString()
       await userService.addUserToTenant(
-        user._id!.toString(),
+        userIdToUse,
         tenantId,
         'admin',
         [],
@@ -341,7 +351,7 @@ adminRoutes.post('/tenants/:tenantId/onboard-admin',
           ? `New admin user created for ${tenant.name}`
           : `Existing user ${user.email} added as admin to ${tenant.name}`,
         user: {
-          id: user._id,
+          id: user.id || user._id,  // Use UUID if available, fallback to MongoDB ID
           email: user.email,
           name: user.name,
           temporaryPassword: tempPassword
@@ -531,10 +541,11 @@ adminRoutes.get('/tenants/:tenantId/employees',
       // Get user details for each tenant user
       const employees = []
       for (const tu of tenantUsers) {
+        // Look up user by their UUID (id field), not MongoDB _id
         const user = await mongoService
           .getControlDB()
           .collection('users')
-          .findOne({ _id: tu.userId })
+          .findOne({ id: tu.userId })
 
         if (user) {
           // Get groups for this user
@@ -614,14 +625,16 @@ adminRoutes.get('/users/orphaned',
       // Find orphaned users (those with no tenant associations)
       const orphanedUsers = []
       for (const user of allUsers) {
+        // Use the user's UUID for checking tenant associations
+        const userIdToCheck = user.id || user._id
         const tenantCount = await mongoService
           .getControlDB()
           .collection('tenant_users')
-          .countDocuments({ userId: user._id })
+          .countDocuments({ userId: userIdToCheck })
 
         if (tenantCount === 0) {
           orphanedUsers.push({
-            id: user._id,
+            id: userIdToCheck,
             email: user.email,
             name: user.name,
             createdAt: user.createdAt

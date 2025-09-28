@@ -40,6 +40,7 @@ import queryRoutes from './routes/query'
 import testMcpRoutes from './routes/test-mcp'
 import { cohort } from './routes/cohort'
 import { testEmailRoutes } from './routes/test-email'
+import { debugRoutes } from './routes/debug'
 
 // Import middleware
 import { tenantMiddleware, tenantRateLimitMiddleware } from './middleware/tenant'
@@ -70,6 +71,10 @@ app.get('/health', async (c) => {
 // Auth routes (no tenant required)
 app.route('/auth', authRoutes)
 
+// User profile routes (requires auth but no tenant)
+import userRoutes from './routes/user'
+app.route('/user', userRoutes)
+
 // Admin portal routes (separate auth)
 app.route('/admin', adminRoutes)
 
@@ -99,6 +104,9 @@ app.route('/test-mcp', testMcpRoutes)
 if (process.env.NODE_ENV === 'development') {
   app.route('/test-email', testEmailRoutes)
 }
+
+// Debug routes
+app.route('/debug', debugRoutes)
 
 // Error handling
 app.onError((err, c) => {

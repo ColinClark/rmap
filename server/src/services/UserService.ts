@@ -5,16 +5,27 @@
 import { Collection, ObjectId } from 'mongodb'
 import { mongoService } from './mongodb'
 import { Logger } from '../utils/logger'
-import { TenantUser, type Tenant } from '../types/tenant'
-import type { EnhancedTenantUser, AppPermission, TenantGroup } from '@rmap/types'
+import { TenantUser } from '../types/tenant'
 import { groupService } from './GroupService'
+
+// Define local types for permissions
+interface AppPermission {
+  appId: string
+  permissions: string[]
+  grantedAt: Date
+  grantedBy: string
+  expiresAt?: Date
+}
 import * as crypto from 'crypto'
+import * as fs from 'fs'
+import { v4 as uuidv4 } from 'uuid'
 
 const logger = new Logger('UserService')
 
 export interface User {
-  _id?: string
-  email: string
+  _id?: string  // MongoDB internal ID (we don't use this for relationships)
+  id?: string   // Our UUID - the actual identifier we use for relationships
+  email: string // Just a field for lookup, not a key
   name: string
   passwordHash?: string
   emailVerified: boolean
@@ -55,7 +66,70 @@ export class UserService {
   }
 
   /**
-   * Get user by ID or email
+   * Get user by ID (UUID) - This should be the primary way to get users
+   */
+  async getUserById(userId: string): Promise<User | null> {
+    try {
+      // First try to find by our UUID
+      let user = await this.usersCollection.findOne({
+        id: userId
+      })
+
+      // Fallback to MongoDB ObjectId for backward compatibility
+      if (!user && /^[0-9a-fA-F]{24}$/.test(userId)) {
+        user = await this.usersCollection.findOne({
+          _id: new ObjectId(userId)
+        }) as User | null
+      }
+
+      return user
+    } catch (error) {
+      logger.error('Error fetching user by ID', error)
+      return null
+    }
+  }
+
+  /**
+   * Get user by email - Only for login/lookup purposes, not for relationships
+   */
+  async getUserByEmail(email: string): Promise<User | null> {
+    try {
+      logger.debug(`Looking up user by email: ${email.toLowerCase()}`)
+
+      // Debug: Check what database we're connected to
+      const collection = this.usersCollection
+      const dbName = collection.dbName
+      const collName = collection.collectionName
+      logger.debug(`Querying database: ${dbName}, collection: ${collName}`)
+
+      const user = await this.usersCollection.findOne({
+        email: email.toLowerCase()
+      })
+
+      // TEMPORARY DEBUG - Store in global for inspection
+      ;(global as any).lastUserQuery = {
+        timestamp: new Date().toISOString(),
+        query: { email: email.toLowerCase() },
+        dbName,
+        collName,
+        result: user
+      }
+
+      if (user) {
+        logger.debug(`Found user: ${user.email} with ID: ${user.id || user._id}, Name: ${user.name}`)
+      } else {
+        logger.debug(`No user found for email: ${email.toLowerCase()}`)
+      }
+      return user
+    } catch (error) {
+      logger.error('Error fetching user by email', error)
+      return null
+    }
+  }
+
+  /**
+   * Get user by ID or email (deprecated - use getUserById or getUserByEmail)
+   * @deprecated Use getUserById or getUserByEmail for explicit lookups
    */
   async getUser(identifier: string): Promise<User | null> {
     try {
@@ -64,10 +138,10 @@ export class UserService {
 
       const user = await this.usersCollection.findOne({
         $or: [
-          isObjectId ? { _id: new ObjectId(identifier) } : { _id: identifier },
+          isObjectId ? { _id: new ObjectId(identifier) } : { id: identifier },
           { email: identifier.toLowerCase() }
         ]
-      })
+      }) as User | null
       return user
     } catch (error) {
       logger.error('Error fetching user', error)
@@ -84,22 +158,30 @@ export class UserService {
     passwordHash?: string
     emailVerified?: boolean
   }): Promise<User> {
-    const user: User = {
-      email: data.email.toLowerCase(),
-      name: data.name,
-      passwordHash: data.passwordHash,
-      emailVerified: data.emailVerified || false,
-      emailVerificationToken: !data.emailVerified ? this.generateToken() : undefined,
-      twoFactorEnabled: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    try {
+      const userId = `user_${uuidv4()}`  // Prefixed UUID for clarity
+      const user: User = {
+        id: userId,  // This is our primary identifier for relationships
+        email: data.email.toLowerCase(),
+        name: data.name,
+        passwordHash: data.passwordHash,
+        emailVerified: data.emailVerified || false,
+        emailVerificationToken: !data.emailVerified ? this.generateToken() : undefined,
+        twoFactorEnabled: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+
+      logger.info(`Attempting to create user: ${user.email} with ID: ${userId}`)
+      const result = await this.usersCollection.insertOne(user as any)
+      user._id = result.insertedId.toString()
+
+      logger.info(`Successfully created user: ${user.email} with ID: ${userId}, MongoDB ID: ${user._id}`)
+      return user
+    } catch (error) {
+      logger.error(`Failed to create user ${data.email}:`, error)
+      throw error
     }
-
-    const result = await this.usersCollection.insertOne(user as any)
-    user._id = result.insertedId
-
-    logger.info(`Created new user: ${user.email}`)
-    return user
   }
 
   /**
@@ -109,26 +191,59 @@ export class UserService {
     userId: string,
     tenantId: string,
     role: TenantUser['tenantRole'] = 'member',
-    permissions: string[] = [],
+    _permissions: string[] = [],
     data?: {
       phoneNumber?: string
       companyRole?: string
       groups?: string[]
     }
-  ): Promise<EnhancedTenantUser> {
+  ): Promise<TenantUser | null> {
     logger.info(`Adding user ${userId} to tenant ${tenantId}`)
-    const user = await this.getUser(userId)
+    const user = await this.getUserById(userId)  // Use explicit method
     if (!user) {
       logger.error(`User not found for ID: ${userId}`)
       throw new Error('User not found')
+    }
+
+    // Use the user's UUID for the relationship
+    const userIdToUse = user.id || user._id?.toString() || userId
+
+    // Check if user is already in the tenant
+    const existingTenantUser = await this.tenantUsersCollection.findOne({
+      userId: userIdToUse,
+      tenantId
+    })
+
+    if (existingTenantUser) {
+      logger.info(`User ${user.email} already exists in tenant ${tenantId}, updating role and data`)
+
+      // Update the existing tenant user with new role and data
+      const updatedRole = role === 'owner' || role === 'admin' ? role : 'member'
+
+      await this.tenantUsersCollection.updateOne(
+        { userId: userIdToUse, tenantId },
+        {
+          $set: {
+            tenantRole: updatedRole,
+            phoneNumber: data?.phoneNumber,
+            companyRole: data?.companyRole,
+            groups: data?.groups,
+            updatedAt: new Date().toISOString()
+          }
+        }
+      )
+
+      // Return the updated tenant user
+      const updated = await this.tenantUsersCollection.findOne({ userId: userIdToUse, tenantId })
+      return updated
     }
 
     // Extract email domain for validation
     const emailDomain = user.email.split('@')[1]?.toLowerCase()
 
     const tenantUser: any = {
-      id: `tu_${Date.now()}`,
-      userId,  // Add the userId field for the index
+      id: `tu_${uuidv4()}`,  // Use UUID for tenant_user record too
+      userId: userIdToUse,  // Use the user's UUID for the relationship
       tenantId,  // Add the tenantId field for the index
       email: user.email,
       emailDomain,
@@ -143,7 +258,9 @@ export class UserService {
       effectivePermissions: {
         lastCalculated: new Date().toISOString(),
         apps: {}
-      }
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
 
     await this.tenantUsersCollection.insertOne(tenantUser)
@@ -453,7 +570,7 @@ export class UserService {
   async updateUserInTenant(
     userId: string,
     tenantId: string,
-    role: string,
+    role: TenantUser['tenantRole'],
     permissions?: string[]
   ): Promise<boolean> {
     try {
@@ -595,7 +712,7 @@ export class UserService {
       const user = await this.tenantUsersCollection.findOne({
         id: userId,
         tenantId
-      }) as EnhancedTenantUser
+      })
 
       if (!user) return {}
 
@@ -608,7 +725,7 @@ export class UserService {
             if (!effectivePermissions[appPerm.appId]) {
               effectivePermissions[appPerm.appId] = new Set()
             }
-            appPerm.permissions.forEach(p =>
+            appPerm.permissions.forEach((p: any) =>
               effectivePermissions[appPerm.appId].add(p)
             )
           }
@@ -630,7 +747,7 @@ export class UserService {
                 if (!effectivePermissions[appPerm.appId]) {
                   effectivePermissions[appPerm.appId] = new Set()
                 }
-                appPerm.permissions.forEach(p =>
+                appPerm.permissions.forEach((p: any) =>
                   effectivePermissions[appPerm.appId].add(p)
                 )
               }
@@ -685,7 +802,7 @@ export class UserService {
    */
   async bulkInviteEmployees(
     tenantId: string,
-    invitedBy: string,
+    _invitedBy: string,
     employees: Array<{
       email: string
       name: string

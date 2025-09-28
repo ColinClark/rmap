@@ -108,7 +108,7 @@ export class AuthService {
   ): Promise<LoginResult> {
     try {
       // Get user by email
-      const user = await userService.getUser(email.toLowerCase())
+      const user = await userService.getUserByEmail(email.toLowerCase())
 
       if (!user) {
         logger.warn(`Login attempt for non-existent user: ${email}`)
@@ -162,8 +162,8 @@ export class AuthService {
         const tenantUsers = await userService.getTenantUsers(tenantId)
         logger.info(`Found ${tenantUsers.length} users in tenant ${tenantId}`)
 
-        // Convert ObjectId to string if needed
-        const userIdStr = (user._id?.toString() || user._id || '').trim()
+        // Use the user's UUID if available, otherwise fallback to MongoDB _id
+        const userIdStr = (user.id || user._id?.toString() || '').trim()
         const userInTenant = tenantUsers.find(tu => {
           const tuUserId = (tu.userId || '').toString().trim()
           logger.info(`Comparing '${userIdStr}' with '${tuUserId}': ${userIdStr === tuUserId}`)
@@ -186,9 +186,10 @@ export class AuthService {
         tenant = await tenantService.getTenant(tenantId)
       }
 
-      // Create session
+      // Create session (use UUID if available, fallback to MongoDB _id)
+      const userIdToUse = user.id || user._id!.toString()
       const session = await userService.createSession(
-        user._id!,
+        userIdToUse,
         tenantId || 'default',
         ipAddress,
         userAgent
@@ -196,7 +197,7 @@ export class AuthService {
 
       // Generate tokens with role
       const accessToken = this.generateAccessToken(
-        user._id!,
+        userIdToUse,
         user.email,
         tenantId,
         userRole
@@ -234,7 +235,7 @@ export class AuthService {
   ): Promise<LoginResult> {
     try {
       // Check if user already exists
-      const existingUser = await userService.getUser(email.toLowerCase())
+      const existingUser = await userService.getUserByEmail(email.toLowerCase())
 
       if (existingUser) {
         return {
@@ -348,7 +349,7 @@ export class AuthService {
       }
 
       // Get user
-      const user = await userService.getUser(session.userId)
+      const user = await userService.getUserById(session.userId)
 
       if (!user) {
         return {

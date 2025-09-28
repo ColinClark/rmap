@@ -182,13 +182,13 @@ export async function tenantMiddleware(c: Context, next: Next) {
       if (tenantUser) {
         // Get full user details
         const usersCollection = mongoService.getControlDB().collection('users')
-        const fullUser = await usersCollection.findOne({ _id: userId })
+        const fullUser = await usersCollection.findOne({ id: userId })
 
         if (fullUser) {
           // Combine user details with tenant association
           user = {
-            id: fullUser._id as string,
-            userId: fullUser._id as string,
+            id: fullUser.id || fullUser._id?.toString() || '',
+            userId: fullUser.id || fullUser._id?.toString() || '',
             email: fullUser.email,
             name: fullUser.name || '',
             tenantId: tenant.id,
@@ -222,7 +222,7 @@ export async function tenantMiddleware(c: Context, next: Next) {
 
       if (demoUser) {
         user = {
-          id: demoUser._id as string,
+          id: demoUser.id || demoUser._id?.toString() || 'demo',
           email: demoUser.email,
           name: demoUser.name || 'Demo User',
           tenantId: tenant.id,

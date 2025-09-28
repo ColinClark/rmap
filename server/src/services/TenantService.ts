@@ -30,7 +30,7 @@ export class TenantService {
       const tenant = await this.tenantsCollection.findOne({
         $or: [
           { id: identifier },
-          { _id: identifier },
+          { id: identifier },
           { slug: identifier }
         ]
       })
@@ -109,26 +109,6 @@ export class TenantService {
     return tenant
   }
 
-  /**
-   * Update tenant information
-   */
-  async updateTenant(tenantId: string, updates: Partial<Tenant>): Promise<boolean> {
-    try {
-      const result = await this.tenantsCollection.updateOne(
-        { _id: tenantId },
-        {
-          $set: {
-            ...updates,
-            updatedAt: new Date().toISOString()
-          }
-        }
-      )
-      return result.modifiedCount > 0
-    } catch (error) {
-      logger.error('Error updating tenant', error)
-      return false
-    }
-  }
 
   /**
    * Update subscription plan
@@ -139,7 +119,7 @@ export class TenantService {
       const features = this.getPlanFeatures(newPlan)
 
       const result = await this.tenantsCollection.updateOne(
-        { _id: tenantId },
+        { id: tenantId },
         {
           $set: {
             'subscription.plan': newPlan,
@@ -174,7 +154,7 @@ export class TenantService {
   async trackUsage(tenantId: string, metric: 'apiCalls' | 'campaigns' | 'storage', amount: number = 1): Promise<void> {
     try {
       await this.tenantsCollection.updateOne(
-        { _id: tenantId },
+        { id: tenantId },
         {
           $inc: {
             [`subscription.usage.${metric}`]: amount

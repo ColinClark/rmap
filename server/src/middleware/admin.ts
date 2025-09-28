@@ -121,7 +121,7 @@ export async function logAdminAction(
         action,
         resource,
         resourceId,
-        c.req.body,
+        await c.req.json().catch(() => ({})),
         ipAddress,
         userAgent
       )

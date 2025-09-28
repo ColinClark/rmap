@@ -100,7 +100,7 @@ export class MongoDBService {
     // Look up tenant to determine data location
     const tenant = await this.getControlDB()
       .collection('tenants')
-      .findOne({ _id: tenantId });
+      .findOne({ id: tenantId });
 
     if (!tenant) {
       throw new Error(`Tenant ${tenantId} not found`);
@@ -125,7 +125,7 @@ export class MongoDBService {
   public async getTenantDataLocation(tenantId: string): Promise<TenantDataLocation> {
     const tenant = await this.getControlDB()
       .collection('tenants')
-      .findOne({ _id: tenantId });
+      .findOne({ id: tenantId });
 
     if (!tenant) {
       throw new Error(`Tenant ${tenantId} not found`);
@@ -373,7 +373,7 @@ export class MongoDBService {
 
     // Update tenant record to point to dedicated database
     await this.getControlDB().collection('tenants').updateOne(
-      { _id: tenantId },
+      { id: tenantId },
       {
         $set: {
           'dataPlane.type': 'dedicated',

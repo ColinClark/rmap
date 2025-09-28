@@ -4,7 +4,10 @@
  */
 
 import { Context, Next } from 'hono';
-import { logger, LogMetadata } from '../services/logger';
+import { Logger } from '../utils/logger';
+
+const logger = new Logger('middleware');
+type LogMetadata = Record<string, any>;
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -145,7 +148,7 @@ export async function auditLoggingMiddleware(c: Context, next: Next) {
  * Security logging middleware
  * Logs security-related events
  */
-export async function securityLoggingMiddleware(c: Context, next: Next) {
+export async function securityLoggingMiddleware(c: Context, next: Next): Promise<void> {
   const path = c.req.path;
   const method = c.req.method;
   const ip = c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown';

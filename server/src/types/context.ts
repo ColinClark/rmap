@@ -9,4 +9,5 @@ export type Variables = {
     user: TenantUser
     permissions: string[]
   }
+  admin?: any  // Admin user for admin routes
 }

@@ -20,15 +20,15 @@ const activityRules: Record<string, ActivityConfig> = {
   'PATCH /api/tenant/settings': {
     action: 'tenant.updated',
     resource: 'Tenant',
-    extractMetadata: (c) => ({ updates: c.req.body })
+    extractMetadata: async (c) => ({ updates: await c.req.json().catch(() => ({})) })
   },
 
   // User management
   'POST /api/tenant/users/invite': {
     action: 'user.invited',
     resource: 'User',
-    extractMetadata: (c) => {
-      const body = c.req.body as any
+    extractMetadata: async (c) => {
+      const body = await c.req.json().catch(() => ({}))
       return { email: body?.email, role: body?.role }
     }
   },
@@ -36,8 +36,8 @@ const activityRules: Record<string, ActivityConfig> = {
     action: 'user.role_updated',
     resource: 'User',
     extractResourceId: (c) => c.req.param('userId'),
-    extractMetadata: (c) => {
-      const body = c.req.body as any
+    extractMetadata: async (c) => {
+      const body = await c.req.json().catch(() => ({}))
       return { role: body?.role }
     }
   },
@@ -51,8 +51,8 @@ const activityRules: Record<string, ActivityConfig> = {
   'POST /api/tenant/billing/subscription': {
     action: 'subscription.updated',
     resource: 'Subscription',
-    extractMetadata: (c) => {
-      const body = c.req.body as any
+    extractMetadata: async (c) => {
+      const body = await c.req.json().catch(() => ({}))
       return { plan: body?.plan, billingCycle: body?.billingCycle }
     }
   },
@@ -61,15 +61,15 @@ const activityRules: Record<string, ActivityConfig> = {
   'PATCH /api/tenant/security': {
     action: 'security.updated',
     resource: 'Security',
-    extractMetadata: (c) => ({ updates: c.req.body })
+    extractMetadata: async (c) => ({ updates: await c.req.json().catch(() => ({})) })
   },
 
   // Campaign management (if needed)
   'POST /api/campaign': {
     action: 'campaign.created',
     resource: 'Campaign',
-    extractMetadata: (c) => {
-      const body = c.req.body as any
+    extractMetadata: async (c) => {
+      const body = await c.req.json().catch(() => ({}))
       return { name: body?.name }
     }
   },
