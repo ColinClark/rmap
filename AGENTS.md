@@ -1,17 +1,20 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
-- App (Vite + React + TS): `src/` (components, pages, lib, services, contexts, layouts, styles, workflows).
-- API server (Hono + TS): `server/src/` (routes, middleware, types). Entrypoint: `server/src/index.ts`.
-- Docs: `docs/` (Architecture, API, Deployment, Developer Setup). Static entry: `index.html`.
-- Config: `vite.config.ts`, `tsconfig*.json`, `tailwind.config.js`, `postcss.config.js`.
+## Project Structure & Module Organization (Monorepo)
+- **Main App** (Vite + React + TS): `apps/web/src/` (components, pages, lib, services, contexts, layouts, styles, workflows).
+- **Admin Portal** (Vite + React + TS): `apps/admin/src/` (admin-specific components and pages).
+- **API Server** (Hono + TS): `server/src/` (routes, middleware, types). Entrypoint: `server/src/index.ts`.
+- **Shared Packages**: `packages/types/` (shared TypeScript types), `packages/ui/` (shared components).
+- **Docs**: `docs/` (Architecture, API, Deployment, Developer Setup).
+- **Config**: Root `turbo.json`, individual `vite.config.ts`, `tsconfig*.json`, `tailwind.config.js`.
 
-## Build, Test, and Development Commands
-- Frontend dev: `npm run dev` (serves on Vite, e.g., http://localhost:5173).
-- Frontend build: `npm run build` (outputs to `dist/`).
-- Server dev: `cd server && npm run dev` (Hono server on `PORT` env, defaults 4000).
-- Server build/start: `cd server && npm run build && npm start`.
-- Type-check: `cd server && npm run typecheck` or `npx tsc --noEmit` at repo root.
+## Build, Test, and Development Commands (Monorepo)
+- **All services**: `npm run dev` (starts web, admin, and server).
+- **Web app**: `npm run dev:web` (http://localhost:3000).
+- **Admin portal**: `npm run dev:admin` (http://localhost:3001).
+- **Server**: `cd server && npm run dev` (Hono server on port 4000).
+- **Build all**: `npm run build` (builds all apps and packages).
+- **Type-check**: `npm run typecheck` (checks all packages).
 
 ## Coding Style & Naming Conventions
 - TypeScript, ES modules, 2-space indentation.
@@ -32,5 +35,7 @@
 - Keep PRs focused and under ~300 lines where practical; update relevant docs in `docs/`.
 
 ## Security & Configuration Tips
-- Environment: do not commit secrets. Use `.env` files (ignored). Server CORS/ports configured in `server/src/index.ts`.
-- Validate inputs (Zod) on server routes; handle errors via centralized `app.onError`.
+- **Environment**: Use `.env` files (never commit secrets). Required: `MONGODB_URI`, `JWT_SECRET`, `ANTHROPIC_API_KEY`, `STATISTA_API_KEY`.
+- **Database**: MongoDB Atlas with tenant isolation via document filtering.
+- **Validation**: Use Zod on server routes; handle errors via centralized `app.onError`.
+- **Multi-tenancy**: All API routes require tenant context via middleware.

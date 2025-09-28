@@ -54,11 +54,11 @@ A comprehensive multi-tenant SaaS marketing platform for managing retail media c
 
 ### Backend
 - **Hono** framework (TypeScript)
-- **MongoDB Atlas** for data persistence
-- **Multi-tenant middleware** for isolation
+- **MongoDB Atlas** for data persistence (configured via MONGODB_URI)
+- **Multi-tenant middleware** for data isolation
 - **Zod** for validation
 - **JWT** authentication with refresh tokens
-- **Redis** ready for caching
+- **MCP** (Model Context Protocol) for AI integrations
 
 ## 📦 Installation
 
@@ -66,6 +66,7 @@ A comprehensive multi-tenant SaaS marketing platform for managing retail media c
 - Node.js 20+ and npm 10+
 - MongoDB Atlas account (free tier works)
 - Git
+- API keys for integrations (Anthropic, Statista)
 
 ### Quick Start
 
@@ -86,7 +87,11 @@ npm install
 # Copy environment template
 cp .env.example .env
 
-# Edit .env with your MongoDB connection string and JWT secret
+# Edit .env with required configuration:
+# - MONGODB_URI: Your MongoDB Atlas connection string
+# - JWT_SECRET: Secret for JWT token signing
+# - ANTHROPIC_API_KEY: For AI-powered cohort building
+# - STATISTA_API_KEY: For market data integration
 ```
 
 4. **Start development servers**
@@ -136,10 +141,10 @@ The platform identifies tenants through multiple methods:
 
 ### Data Isolation
 - All API requests are filtered by tenant ID
-- MongoDB collections include tenantId field
+- MongoDB Atlas documents include tenantId field for isolation
 - File storage is partitioned by tenant
 - Cache keys are prefixed with tenant ID
-- Separate databases per tenant (future)
+- Complete tenant boundary enforcement at middleware level
 
 ## 📚 Documentation
 
@@ -158,9 +163,9 @@ Comprehensive documentation is available in the `/docs` directory:
 
 1. **Frontend**: Deploy to S3 + CloudFront
 2. **Backend**: Deploy to ECS Fargate or Lambda
-3. **Database**: RDS PostgreSQL with Multi-AZ
-4. **Cache**: ElastiCache Redis
-5. **Storage**: S3 for file uploads
+3. **Database**: MongoDB Atlas (cloud-hosted)
+4. **Storage**: S3 for file uploads
+5. **CDN**: CloudFront for global distribution
 
 ### Environment Variables
 
@@ -169,14 +174,14 @@ Create `.env` files for configuration:
 ```env
 # Frontend (.env)
 VITE_API_URL=https://api.yourdomain.com
-VITE_STRIPE_PUBLIC_KEY=pk_live_...
 
 # Backend (server/.env)
-DATABASE_URL=postgresql://user:pass@host:5432/dbname
-REDIS_URL=redis://localhost:6379
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/?retryWrites=true&w=majority&appName=AppName
 JWT_SECRET=your-secret-key
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+ANTHROPIC_API_KEY=sk-ant-api03-...
+STATISTA_API_KEY=your-statista-key
+NODE_ENV=production
+PORT=4000
 ```
 
 ## 🧪 Testing

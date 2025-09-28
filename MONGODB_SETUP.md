@@ -71,17 +71,30 @@ To test your MongoDB connection:
 
 ```bash
 cd server
-npx tsx -e "
-import { mongoService } from './src/services/mongodb.js';
-mongoService.connect()
-  .then(() => console.log('✅ MongoDB connected successfully'))
-  .then(() => mongoService.healthCheck())
-  .then(health => console.log('✅ Health check:', health ? 'passed' : 'failed'))
-  .then(() => process.exit(0))
-  .catch(err => {
+
+# Test connection with environment variables loaded
+node -e "
+require('dotenv').config();
+const { MongoClient } = require('mongodb');
+
+async function test() {
+  if (!process.env.MONGODB_URI) {
+    console.error('❌ MONGODB_URI not set in .env file');
+    process.exit(1);
+  }
+
+  try {
+    const client = new MongoClient(process.env.MONGODB_URI);
+    await client.connect();
+    console.log('✅ MongoDB Atlas connected successfully');
+    await client.close();
+  } catch (err) {
     console.error('❌ Connection failed:', err.message);
     process.exit(1);
-  });
+  }
+}
+
+test();
 "
 ```
 

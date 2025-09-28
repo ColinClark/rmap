@@ -426,9 +426,10 @@ interface ExpertiseAdaptation {
 
 ### Security
 - No sensitive data in guide content
-- Respect tenant boundaries in demo mode
+- **Multi-tenant isolation**: Respect tenant boundaries in demo mode
+- **MongoDB Atlas**: Secure data storage with tenant filtering
 - Sanitize all user-provided content
-- Audit log guide interactions
+- Audit log guide interactions per tenant
 
 ### Performance
 - Lazy load guide content
@@ -436,6 +437,7 @@ interface ExpertiseAdaptation {
 - Debounce context detection (100ms)
 - Cache completed guide states
 - Maximum 50KB bundle size impact
+- **Database optimization**: Efficient MongoDB queries with proper indexing
 
 ## Accessibility
 
