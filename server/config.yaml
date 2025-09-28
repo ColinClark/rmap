@@ -48,9 +48,10 @@ mcp:
     security:
       apiKey: ${STATISTA_API_KEY}  # Environment variable
     
-# Database Configuration  
+# Database Configuration
 database:
-  url: ${DATABASE_URL}
+  url: ${MONGODB_URI}
+  type: mongodb
   maxConnections: 20
   
 # Tenant Configuration

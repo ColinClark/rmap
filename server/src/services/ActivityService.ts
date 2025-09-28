@@ -32,7 +32,10 @@ export class ActivityService {
 
   private async initDB() {
     try {
-      const mongoUrl = process.env.MONGODB_URI || 'mongodb://localhost:27017/rmap'
+      const mongoUrl = process.env.MONGODB_URI
+      if (!mongoUrl) {
+        throw new Error('MONGODB_URI environment variable is required')
+      }
       const client = await MongoClient.connect(mongoUrl)
       this.db = client.db()
       this.activitiesCollection = this.db.collection<ActivityLog>('activities')

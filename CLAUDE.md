@@ -66,7 +66,7 @@ The application is a multi-tenant SaaS platform with:
 - Subscription-based feature access
 - Usage tracking and limits enforcement
 - Team management with role-based permissions
-- MongoDB Atlas for data persistence
+- MongoDB Atlas for data persistence (configured via MONGODB_URI in .env)
 - Platform admin portal for tenant management
 
 ### Frontend Architecture
@@ -219,35 +219,33 @@ const canAddUser = tenant.subscription.usage.users < tenant.subscription.limits.
 ### Environment Variables
 ```env
 # Backend
-DATABASE_URL=postgresql://...
-REDIS_URL=redis://...
+MONGODB_URI=mongodb+srv://user:password@cluster.example.mongodb.net/?retryWrites=true&w=majority&appName=AppName
 JWT_SECRET=...
-STRIPE_SECRET_KEY=...
-STRIPE_WEBHOOK_SECRET=...
+ANTHROPIC_API_KEY=...
+STATISTA_API_KEY=...
 
 # Frontend
 VITE_API_URL=https://api.platform.com
-VITE_STRIPE_PUBLIC_KEY=...
 ```
 
 ### Multi-tenant Database
-- Use PostgreSQL with Row Level Security (RLS)
-- Consider schema-per-tenant for large enterprise clients
-- Implement connection pooling per tenant
+- MongoDB Atlas with tenant isolation via document-level filtering
+- All queries include `tenantId` filter for data isolation
+- Connection pooling handled by MongoDB Atlas
 
 ### Scaling Strategy
 1. Frontend: CDN with geo-distribution
 2. Backend: Horizontal scaling with load balancer
-3. Database: Read replicas, connection pooling
-4. Cache: Redis with tenant-prefixed keys
-5. Storage: S3 with tenant-prefixed paths
+3. Database: MongoDB Atlas auto-scaling, read replicas
+4. Cache: In-memory caching with tenant-prefixed keys
+5. Storage: MongoDB GridFS with tenant-prefixed paths
 
 ## Security Considerations
 
 ### Tenant Isolation
 - Never expose other tenants' data
 - Validate tenant context on every request
-- Use parameterized queries with tenant filter
+- Use MongoDB queries with tenant filter in all operations
 - Audit log all cross-tenant operations
 
 ### Authentication Flow

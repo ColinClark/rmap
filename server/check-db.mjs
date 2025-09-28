@@ -1,6 +1,14 @@
 import { MongoClient } from 'mongodb'
+import dotenv from 'dotenv'
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/rmap_control'
+// Load environment variables from .env file
+dotenv.config()
+
+const MONGODB_URI = process.env.MONGODB_URI
+if (!MONGODB_URI) {
+  console.error('MONGODB_URI environment variable is required')
+  process.exit(1)
+}
 
 async function checkDB() {
   const client = new MongoClient(MONGODB_URI)
@@ -9,8 +17,9 @@ async function checkDB() {
     await client.connect()
     const db = client.db()
 
-    console.log('=== Checking for user with email colin@clark.ws ===')
-    const user = await db.collection('users').findOne({ email: 'colin@clark.ws' })
+    const testEmail = process.env.TEST_EMAIL || 'test@example.com'
+    console.log(`=== Checking for user with email ${testEmail} ===`)
+    const user = await db.collection('users').findOne({ email: testEmail })
     console.log('User found:', user ? 'YES' : 'NO')
     if (user) {
       console.log('User details:')
@@ -30,8 +39,8 @@ async function checkDB() {
       })
     }
 
-    console.log('\n=== Checking tenants with contact email colin@clark.ws ===')
-    const tenants = await db.collection('tenants').find({ contactEmail: 'colin@clark.ws' }).toArray()
+    console.log(`\n=== Checking tenants with contact email ${testEmail} ===`)
+    const tenants = await db.collection('tenants').find({ contactEmail: testEmail }).toArray()
     console.log('Tenants with this contact email:', tenants.length)
     tenants.forEach(t => {
       console.log('- Tenant:', t.name, '(' + t.slug + ')', 'ID:', t.id)
