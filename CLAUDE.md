@@ -21,12 +21,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Install all dependencies (from root)
 npm install
 
-# Run both frontend apps with hot reload
-npm run dev                 # Run everything (packages + apps)
-npm run dev:frontend        # Run only web and admin apps
-npm run dev:apps           # Alternative for running all apps
+# Start everything (backend must be started separately)
+npm run dev                 # Run all apps via Turborepo
 
-# Run individual apps
+# Run specific apps
+npm run dev:frontend        # Run only web and admin apps
 npm run dev:web            # Web app only (port 3000)
 npm run dev:admin          # Admin app only (port 3001)
 
@@ -35,18 +34,20 @@ npm run build              # Build everything
 npm run build:web          # Build web app only
 npm run build:admin        # Build admin app only
 
-# Backend (separate terminal)
+# Linting
+cd apps/web && npm run lint    # Lint web app
+cd apps/admin && npm run lint  # Lint admin app
+
+# Backend (separate terminal - MUST BE RUNNING for apps to work)
 cd server
 npm install
 npm run dev                # Start backend on port 4000
-npm run test              # Run all backend tests
-npm run setup:demo-tenant  # Create demo tenant and user
+npm run typecheck          # Check TypeScript types
 ```
 
 ## Architecture
 
-### Monorepo Structure (NEW!)
-The project now uses a monorepo architecture with Turborepo:
+### Monorepo Structure
 ```
 rmap/
 ├── apps/
@@ -59,6 +60,8 @@ rmap/
 ├── turbo.json           # Turborepo configuration
 └── package.json         # Root workspace configuration
 ```
+
+**Critical:** Backend server MUST be running before starting frontend apps. Authentication and all API calls will fail otherwise.
 
 ### Multi-Tenant Structure
 The application is a multi-tenant SaaS platform with:
@@ -120,12 +123,13 @@ src/
 
 ### Backend Architecture
 
-#### Middleware
-- **tenantMiddleware**: Identifies and validates tenant for every request
-- **requestContext**: Request context and correlation ID tracking
-- **tenantRateLimitMiddleware**: Enforces API usage limits
-- **requireTenantRole**: Role-based access control
-- **requireWorkflow**: Subscription-based workflow access
+#### Middleware (server/src/middleware/)
+- **tenant.ts**: Complete tenant isolation and validation
+- **auth.ts**: JWT authentication and session management
+- **admin.ts**: Platform admin authentication (separate from tenant auth)
+- **logging.ts**: Request/response logging with correlation IDs
+- **activityLogger.ts**: User activity tracking
+- **requestContext.ts**: Request context and correlation ID tracking
 
 #### Routes
 - `/api/tenant/*` - Organization management endpoints
@@ -294,7 +298,7 @@ describe('Campaign API', () => {
 4. Initialize default settings
 5. Send welcome email with setup instructions
 
-## Current Status (Session Date: 2025-09-26)
+## Current Architecture State
 
 ### ✅ What's Working
 1. **Monorepo Architecture**
@@ -305,23 +309,20 @@ describe('Campaign API', () => {
 
 2. **Backend (MongoDB + Hono)**
    - Multi-tenant MongoDB with Atlas
-   - JWT authentication working
-   - Tenant isolation middleware
-   - Platform admin authentication
+   - JWT authentication with refresh tokens
+   - Complete tenant isolation middleware
+   - Separate platform admin authentication
    - App entitlement system
-   - All tests passing (Phase 1, 2, 4, 6)
 
-3. **Admin Portal (NEW!)**
-   - Full admin UI at port 3001
-   - Login: admin@rmap.com / Admin123
-   - Dashboard, Tenants, Apps, Admins, Settings pages
+3. **Admin Portal**
+   - Platform administration UI at port 3001
+   - Tenant, App, Admin, and Settings management
    - App catalog with entitlement management
    - Tailwind CSS v3 styling
 
 4. **Web App**
-   - Login: test@example.com / password123
    - Retail Media Workflow (8 steps)
-   - Data Query tool
+   - Data Query tool with natural language
    - MCP integrations (SynthiePop, Statista)
 
 ### ⚠️ Known Issues & Fixes Applied
@@ -346,7 +347,7 @@ describe('Campaign API', () => {
    - Problem: npm doesn't support workspace:* protocol
    - Solution: Use file: protocol for local packages
 
-### 📝 Login Credentials
+### 📝 Default Login Credentials
 ```
 # Admin Portal (port 3001)
 Email: admin@rmap.com
@@ -355,43 +356,14 @@ Password: Admin123
 # Web App (port 3000)
 Email: demo@example.com
 Password: Demo123
-
-# Backend runs on port 4000
 ```
 
-### ✅ Completed Work (This Session)
-- ✅ Phase 3 (User Management) - ALL COMPLETE
-  - Registration with email verification
-  - Password reset flow with email tokens
-  - RBAC implementation with permissions
-  - Session persistence on refresh
-  - Auto-logout on token expiry
-  - User invitation system
-- ✅ Phase 4 (Tenant Management) - COMPLETE
-- ✅ Phase 6 (Admin Portal) - COMPLETE
-- ✅ Comprehensive Documentation
+## Performance Optimizations
 
-## Recent Updates & Known Issues
-
-### Session Achievements (Sep 27, 2025)
-- **Phase 3 Complete**: Full user management system
-- **Phase 4 Complete**: Tenant management with subscriptions
-- **Phase 6 Complete**: Admin portal with app entitlements
-- **Monorepo Migration**: Successfully migrated to Turborepo
-- **Documentation Created**: Complete docs in /docs folder
-- **App Entitlements Working**: 2 default apps in database
-
-### Performance Optimizations
 - **AudienceRefinement**: Limited to 100 records (prevents browser hang)
 - **LLM Iterations**: Increased from 20 to 50 for complex queries
 - **SSE Streaming**: Real-time response streaming for chat interface
 - **Turbo Caching**: Build caching for faster development
-
-### Historical Fixes
-1. **Navigation Issues**: Fixed missing imports from '../App'
-2. **Component Naming**: CollaborationPanel (not CampaignExport)
-3. **Session Management**: Statista MCP session handled by server
-4. **Result Counting**: Fixed Statista search result display (items array)
 
 ## Troubleshooting Guide
 
@@ -420,16 +392,38 @@ Password: Demo123
    - Build types package first: `cd packages/types && npm run build`
    - Check tsconfig extends paths are correct
 
-## Important Notes
+## Critical Multi-Tenant Patterns
+
+### Always Include Tenant Context
+```typescript
+// ❌ NEVER do this
+const campaigns = await db.collection('campaigns').find({});
+
+// ✅ ALWAYS include tenantId
+const campaigns = await db.collection('campaigns').find({ tenantId });
+```
+
+### Validate Tenant Access on Every Request
+```typescript
+// Backend middleware automatically handles this via tenant.ts
+// Frontend: Always use authenticated API calls through services/api.ts
+```
+
+### Separate Admin vs Tenant Authentication
+- Admin portal uses completely separate auth (`/api/admin/*`)
+- Tenant app uses tenant-scoped auth (`/api/auth/*`)
+- Never mix admin and tenant contexts
+
+## Important Development Notes
 - Always use the structured logging system (Logger class)
 - Check for existing components before creating new ones
-- Types should be imported from `@rmap/types` in monorepo
+- Types should be imported from `@rmap/types` in monorepo packages
 - Limit database queries to reasonable sizes for UI display
 - Use environment variables for all API keys and secrets
 - Run backend BEFORE starting frontend apps
 - Both apps need backend running for auth to work
 - Admin portal has SEPARATE auth from main app
-- Apps must be initialized in database (run server once)
+- Environment files (.env) are git-ignored - never commit secrets
 
 ## 📚 Documentation Links
 
