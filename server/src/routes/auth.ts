@@ -292,7 +292,16 @@ authRoutes.get('/me', authMiddleware, async (c) => {
     if (tenant) {
       // Get user's role in this tenant
       const tenantUsers = await userService.getTenantUsers(tenantId)
-      const userInTenant = tenantUsers.find(tu => tu.userId === userId)
+      logger.info(`Found ${tenantUsers.length} users in tenant ${tenantId}`)
+
+      // Handle both ObjectId and string userId formats
+      const userInTenant = tenantUsers.find(tu => {
+        const tuUserId = tu.userId?.toString()
+        const userIdStr = userId?.toString()
+        return tuUserId === userIdStr
+      })
+
+      logger.info(`User in tenant: ${JSON.stringify(userInTenant)}`)
 
       tenantInfo = {
         id: tenant.id,

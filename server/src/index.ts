@@ -12,8 +12,8 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// Load environment variables from parent directory
-dotenv.config({ path: path.resolve(__dirname, '../../.env') })
+// Load environment variables from server directory (where we run npm run dev)
+dotenv.config({ path: path.join(process.cwd(), '.env') })
 
 // Load configuration
 import configLoader from './services/config/ConfigLoader'

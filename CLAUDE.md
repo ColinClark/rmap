@@ -21,29 +21,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Install all dependencies (from root)
 npm install
 
-# Start everything (backend must be started separately)
-npm run dev                 # Run all apps via Turborepo
+# Start backend first (REQUIRED - run in separate terminal)
+cd server
+npm install
+npm run dev                # Backend on port 4000
 
-# Run specific apps
-npm run dev:frontend        # Run only web and admin apps
+# Then start frontend apps (in another terminal from root)
+npm run dev                # All apps via Turborepo
 npm run dev:web            # Web app only (port 3000)
 npm run dev:admin          # Admin app only (port 3001)
+npm run dev:frontend       # Both web and admin apps
 
 # Build commands
 npm run build              # Build everything
 npm run build:web          # Build web app only
 npm run build:admin        # Build admin app only
 
-# Linting
-cd apps/web && npm run lint    # Lint web app
-cd apps/admin && npm run lint  # Lint admin app
-
-# Backend (separate terminal - MUST BE RUNNING for apps to work)
-cd server
-npm install
-npm run dev                # Start backend on port 4000
-npm run typecheck          # Check TypeScript types
+# Type checking and linting
+cd server && npm run typecheck  # Backend type check
+cd apps/web && npm run lint     # Lint web app
+cd apps/admin && npm run lint   # Lint admin app
 ```
+
+**Critical:** Backend server MUST be running before starting frontend apps. All authentication and API calls will fail otherwise.
 
 ## Architecture
 
@@ -57,11 +57,15 @@ rmap/
 │   ├── types/            # Shared TypeScript types (@rmap/types)
 │   └── ui/               # Shared UI components (@rmap/ui)
 ├── server/               # Backend API (port 4000)
+│   ├── src/
+│   │   ├── middleware/   # Auth, tenant, logging middleware
+│   │   ├── routes/       # API route handlers
+│   │   ├── services/     # Business logic (EmailService, etc.)
+│   │   └── index.ts      # Server entry point
+│   └── .env.example      # Backend environment template
 ├── turbo.json           # Turborepo configuration
 └── package.json         # Root workspace configuration
 ```
-
-**Critical:** Backend server MUST be running before starting frontend apps. Authentication and all API calls will fail otherwise.
 
 ### Multi-Tenant Structure
 The application is a multi-tenant SaaS platform with:
@@ -92,18 +96,19 @@ The application is a multi-tenant SaaS platform with:
 4. **AudienceRefinement** - Demographic filtering and refinement
 5. **StrategyGenerator** - AI-driven strategy generation
 6. **ComparativeDashboard** - Strategy comparison and analysis
-7. **CollaborationPanel** - Campaign export and activation (formerly CampaignExport)
+7. **CollaborationPanel** - Campaign export and activation
 8. **PerformanceMonitoring** - Real-time campaign tracking
 
 #### Component Organization
 ```
-src/
+apps/web/src/
 ├── workflows/          # Individual workflow modules
 │   └── RetailMediaWorkflow.tsx
 ├── pages/             # Page components
 │   ├── Login.tsx
 │   ├── Dashboard.tsx
-│   └── TenantSettings.tsx
+│   ├── TenantSettings.tsx
+│   └── admin/        # Admin-specific pages
 ├── layouts/           # Layout wrappers
 │   └── DashboardLayout.tsx
 ├── contexts/          # React contexts
@@ -111,14 +116,12 @@ src/
 │   └── TenantContext.tsx
 ├── components/        # Reusable UI components
 │   ├── ui/           # shadcn/ui Radix-based components
-│   ├── CohortBuilder.tsx
-│   ├── AudienceRefinement.tsx
-│   └── [other workflow components]
+│   └── [workflow components]
 ├── services/          # API services
 │   ├── api.ts       # Core API client
 │   └── correlationId.ts # Request tracking
-└── types/            # Centralized type definitions
-    └── index.ts      # Shared types across components
+└── types/            # Frontend type definitions
+    └── index.ts
 ```
 
 ### Backend Architecture
@@ -131,13 +134,22 @@ src/
 - **activityLogger.ts**: User activity tracking
 - **requestContext.ts**: Request context and correlation ID tracking
 
-#### Routes
-- `/api/tenant/*` - Organization management endpoints
-- `/api/cohort/*` - AI-powered cohort building with Claude integration
-- `/api/audience/*` - Audience segment management (tenant-scoped)
-- `/api/campaign/*` - Campaign operations (tenant-scoped)
-- `/api/analytics/*` - Analytics and reporting (tenant-scoped)
-- `/api/integrations/*` - External API integrations
+#### Routes (server/src/routes/)
+- **admin.ts** - Platform administration endpoints (tenant/app/admin management)
+- **tenant-admin.ts** - Tenant-level admin operations
+- **tenant.ts** - Organization management endpoints
+- **auth.ts** - Authentication (login, register, refresh)
+- **user.ts** - User profile and settings
+- **invitation.ts** - Team invitation management
+- **cohort.ts** - AI-powered cohort building with Claude integration
+- **audience.ts** - Audience segment management (tenant-scoped)
+- **campaign.ts** - Campaign operations (tenant-scoped)
+- **analytics.ts** - Analytics and reporting (tenant-scoped)
+- **integrations.ts** - External API integrations
+- **query.ts** - Natural language data querying
+- **test-mcp.ts** - MCP integration testing
+- **test-email.ts** - Email service testing
+- **debug.ts** - Debug utilities
 
 #### MCP (Model Context Protocol) Integrations
 - **SynthiePop MCP** - Access to 83M synthetic German population records
@@ -149,11 +161,11 @@ src/
 
 #### Email Service
 - **EmailService** - Handles all email operations
-  - Development: Uses Ethereal (test email service) - check server logs for credentials to view emails
-  - Production: Uses SMTP settings from environment variables (SMTP_HOST, SMTP_PORT, etc.)
-  - Located at: `/server/src/services/EmailService.ts`
+  - Development: Uses Ethereal (test email service) - check server logs for credentials
+  - Production: Uses SMTP settings from environment variables
+  - Located at: `server/src/services/EmailService.ts`
   - Automatically initialized on server startup
-  - In dev, emails are not actually sent but can be viewed at https://ethereal.email/messages
+  - In dev mode, view test emails at https://ethereal.email/messages
 
 #### Data Models
 ```typescript
@@ -218,19 +230,38 @@ if (tenant.checkFeature('sso')) {
 const canAddUser = tenant.subscription.usage.users < tenant.subscription.limits.users;
 ```
 
-## Deployment Considerations
+## Environment Variables
 
-### Environment Variables
+### Backend (server/.env)
 ```env
-# Backend
-MONGODB_URI=mongodb+srv://user:password@cluster.example.mongodb.net/?retryWrites=true&w=majority&appName=AppName
-JWT_SECRET=...
-ANTHROPIC_API_KEY=...
+# Database
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/?retryWrites=true&w=majority&appName=RMAP
+
+# Authentication
+JWT_SECRET=your-secret-key-here
+JWT_EXPIRES_IN=24h
+
+# API Keys
+ANTHROPIC_API_KEY=sk-ant-api03-...
 STATISTA_API_KEY=...
 
-# Frontend
-VITE_API_URL=https://api.platform.com
+# Email (Production)
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=...
+SMTP_PASS=...
+
+# Server
+NODE_ENV=development
+PORT=4000
 ```
+
+### Frontend (apps/web/.env and apps/admin/.env)
+```env
+VITE_API_URL=http://localhost:4000
+```
+
+## Deployment Considerations
 
 ### Multi-tenant Database
 - MongoDB Atlas with tenant isolation via document-level filtering
@@ -277,27 +308,6 @@ describe('Campaign API', () => {
 });
 ```
 
-## Common Development Tasks
-
-### Adding a New Workflow
-1. Create workflow component in `src/workflows/`
-2. Add to workflow grid in Dashboard
-3. Add permission check in backend
-4. Update subscription plans with workflow access
-
-### Adding a New Subscription Feature
-1. Update `TenantSchema` in `server/src/types/tenant.ts`
-2. Add feature flag check in frontend
-3. Update TenantSettings UI
-4. Add middleware check in backend
-
-### Onboarding a New Tenant
-1. Create tenant record with chosen plan
-2. Set up subdomain or custom domain
-3. Create owner user account
-4. Initialize default settings
-5. Send welcome email with setup instructions
-
 ## Current Architecture State
 
 ### ✅ What's Working
@@ -313,6 +323,7 @@ describe('Campaign API', () => {
    - Complete tenant isolation middleware
    - Separate platform admin authentication
    - App entitlement system
+   - Email service with Ethereal (dev) and SMTP (prod)
 
 3. **Admin Portal**
    - Platform administration UI at port 3001
@@ -324,6 +335,7 @@ describe('Campaign API', () => {
    - Retail Media Workflow (8 steps)
    - Data Query tool with natural language
    - MCP integrations (SynthiePop, Statista)
+   - Tailwind CSS v4 styling
 
 ### ⚠️ Known Issues & Fixes Applied
 
@@ -338,10 +350,10 @@ describe('Campaign API', () => {
    - Problem: @vitejs/plugin-react-swc failed to load
    - Solution: Switched to @vitejs/plugin-react for both apps
 
-3. **Tailwind CSS Issues (FIXED)**
-   - Problem: CSS not loading, border-border utility not found
-   - Solution: Downgraded to Tailwind v3, added proper color config
-   - Fixed admin layout positioning with flexbox
+3. **Tailwind CSS Version Differences**
+   - Web app: Uses Tailwind v4
+   - Admin app: Uses Tailwind v3
+   - Both work correctly with their respective configurations
 
 4. **Workspace Protocol Issue (FIXED)**
    - Problem: npm doesn't support workspace:* protocol
@@ -374,10 +386,10 @@ Password: Demo123
    - Check CORS settings include your port
    - Verify MongoDB connection is active
 
-2. **CSS not loading in admin app**
+2. **CSS not loading**
    - Restart dev server after Tailwind config changes
    - Clear browser cache
-   - Ensure using Tailwind v3 (not v4)
+   - Check correct Tailwind version (v3 for admin, v4 for web)
 
 3. **Module not found errors**
    - Run `npm install` from root directory
@@ -391,6 +403,11 @@ Password: Demo123
 5. **Type errors in shared packages**
    - Build types package first: `cd packages/types && npm run build`
    - Check tsconfig extends paths are correct
+
+6. **Email service not working**
+   - In dev mode: Check server logs for Ethereal credentials
+   - View test emails at https://ethereal.email/messages
+   - In prod: Verify SMTP environment variables are set
 
 ## Critical Multi-Tenant Patterns
 
@@ -427,8 +444,7 @@ const campaigns = await db.collection('campaigns').find({ tenantId });
 
 ## 📚 Documentation Links
 
-- **[Overview](./docs/OVERVIEW.md)** - Start here
+- **[API](./docs/API.md)** - API documentation
 - **[Architecture](./docs/ARCHITECTURE.md)** - Technical deep-dive
-- **[API Reference](./docs/API_REFERENCE.md)** - Complete API docs
-- **[Developer Guide](./docs/DEVELOPER.md)** - Setup & development
-- **[Admin Guide](./docs/ADMIN.md)** - Platform administration
+- **[Deployment](./docs/DEPLOYMENT.md)** - Deployment guide
+- **[Developer Setup](./docs/DEVELOPER_SETUP.md)** - Development setup

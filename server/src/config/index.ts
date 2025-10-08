@@ -6,13 +6,17 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
-// Define project root as absolute path
-export const PROJECT_ROOT = '/Users/colin.clark/Dev/rmap';
-export const SERVER_ROOT = path.join(PROJECT_ROOT, 'server');
+// Define project root dynamically from current working directory
+export const PROJECT_ROOT = path.resolve(process.cwd(), '..');
+export const SERVER_ROOT = process.cwd();
 
-// Load environment variables from project root
-const envPath = path.join(PROJECT_ROOT, '.env');
-dotenv.config({ path: envPath });
+// Load environment variables - try server/.env first, then root .env
+const serverEnvPath = path.join(SERVER_ROOT, '.env');
+const projectEnvPath = path.join(PROJECT_ROOT, '.env');
+
+// Load both, with server/.env taking precedence
+dotenv.config({ path: projectEnvPath });
+dotenv.config({ path: serverEnvPath });
 
 // Export all configuration modules
 export * from './database.config';
@@ -21,7 +25,7 @@ export * from './database.config';
 export const appConfig = {
   projectRoot: PROJECT_ROOT,
   serverRoot: SERVER_ROOT,
-  envPath: envPath,
+  envPath: serverEnvPath,
 
   // Server settings
   server: {

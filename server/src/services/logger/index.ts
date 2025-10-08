@@ -9,8 +9,8 @@ import { appConfig, PROJECT_ROOT } from '../../config';
 import * as path from 'path';
 import * as fs from 'fs';
 
-// Ensure logs directory exists
-const logsDir = path.join(PROJECT_ROOT, 'server', 'logs');
+// Ensure logs directory exists (relative to server root)
+const logsDir = path.join(process.cwd(), 'logs');
 if (!fs.existsSync(logsDir)) {
   fs.mkdirSync(logsDir, { recursive: true });
 }

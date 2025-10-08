@@ -6,9 +6,8 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 
-// Ensure environment variables are loaded
-const PROJECT_ROOT = '/Users/colin.clark/Dev/rmap';
-dotenv.config({ path: path.join(PROJECT_ROOT, '.env') });
+// Environment variables will be loaded by index.ts config
+// No need to load here as it's already handled
 
 export interface DatabaseConfig {
   uri: string;
@@ -42,47 +41,57 @@ export interface DatabaseConfig {
   };
 }
 
-const config: DatabaseConfig = {
-  // MongoDB Connection URI from environment
-  uri: process.env.MONGODB_URI || '',
+// Lazy getter for database configuration - only reads env vars when accessed
+let _config: DatabaseConfig | null = null;
 
-  // Connection pool options
-  options: {
-    maxPoolSize: 100,
-    minPoolSize: 10,
-    maxIdleTimeMS: 30000,
-    serverSelectionTimeoutMS: 5000,
-  },
+function getConfig(): DatabaseConfig {
+  if (!_config) {
+    _config = {
+      // MongoDB Connection URI from environment
+      uri: process.env.MONGODB_URI || '',
 
-  // Database names
-  databases: {
-    controlPlane: 'rmap_control',
-    sharedData: 'rmap_shared',
-    tenantPrefix: 'rmap_tenant_', // For dedicated tenant databases
-  },
+      // Connection pool options
+      options: {
+        maxPoolSize: 100,
+        minPoolSize: 10,
+        maxIdleTimeMS: 30000,
+        serverSelectionTimeoutMS: 5000,
+      },
 
-  // Collection names
-  collections: {
-    control: {
-      tenants: 'tenants',
-      users: 'users',
-      tenantUsers: 'tenant_users',
-      sessions: 'sessions',
-      platformAdmins: 'platform_admins',
-      auditLogs: 'audit_logs',
-      usageEvents: 'usage_events',
-    },
-    data: {
-      campaigns: 'campaigns',
-      audiences: 'audiences',
-      analytics: 'analytics',
-      workflows: 'workflows',
-    },
-  },
-};
+      // Database names
+      databases: {
+        controlPlane: 'rmap_control',
+        sharedData: 'rmap_shared',
+        tenantPrefix: 'rmap_tenant_', // For dedicated tenant databases
+      },
+
+      // Collection names
+      collections: {
+        control: {
+          tenants: 'tenants',
+          users: 'users',
+          tenantUsers: 'tenant_users',
+          sessions: 'sessions',
+          platformAdmins: 'platform_admins',
+          auditLogs: 'audit_logs',
+          usageEvents: 'usage_events',
+        },
+        data: {
+          campaigns: 'campaigns',
+          audiences: 'audiences',
+          analytics: 'analytics',
+          workflows: 'workflows',
+        },
+      },
+    };
+  }
+  return _config;
+}
 
 // Validate configuration
 export function validateDatabaseConfig(): void {
+  const config = getConfig();
+
   if (!config.uri) {
     throw new Error('MONGODB_URI environment variable is not set');
   }
@@ -97,12 +106,16 @@ export function validateDatabaseConfig(): void {
   }
 }
 
-// Export configuration
-export const databaseConfig = config;
+// Export configuration via getter
+export const databaseConfig = new Proxy({} as DatabaseConfig, {
+  get(target, prop) {
+    return (getConfig() as any)[prop];
+  }
+});
 
 // Helper functions
 export function getDedicatedDatabaseName(tenantSlug: string): string {
-  return `${config.databases.tenantPrefix}${tenantSlug}`;
+  return `${databaseConfig.databases.tenantPrefix}${tenantSlug}`;
 }
 
 export function isSharedTenant(plan: string): boolean {
