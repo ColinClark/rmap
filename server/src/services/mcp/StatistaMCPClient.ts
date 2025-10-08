@@ -164,7 +164,7 @@ export class StatistaMCPClient {
         params: {
           name: 'search-statistics',
           arguments: {
-            question: query  // Statista expects 'question' not 'query'
+            query: query  // Statista expects 'query' parameter
           }
         },
         id: Date.now()
@@ -184,22 +184,24 @@ export class StatistaMCPClient {
       });
 
       const responseText = await response.text();
-      logger.debug(`Statista response length: ${responseText.length} bytes`);
+      logger.info(`Statista response length: ${responseText.length} bytes`);
+      logger.info(`Statista response first 500 chars: ${responseText.substring(0, 500)}`);
 
       if (!response.ok) {
-        logger.error('Statista search failed', { 
-          status: response.status, 
+        logger.error('Statista search failed', {
+          status: response.status,
           statusText: response.statusText,
-          response: responseText.substring(0, 500) 
+          response: responseText.substring(0, 500)
         });
         throw new Error(`Statista search failed: ${response.statusText} - ${responseText}`);
       }
 
       // Parse SSE format response
       if (responseText.includes('event:') || responseText.includes('data:')) {
-        logger.debug('Detected SSE format response from Statista');
-        
+        logger.info('Detected SSE format response from Statista');
+
         const sseResult = SSEParser.parseSSEResponse(responseText);
+        logger.info(`SSE parse result: ${sseResult ? 'success' : 'null'}`);
         if (sseResult) {
           // Extract the result - Statista returns results in content[0].text format
           if (sseResult.result?.content && Array.isArray(sseResult.result.content)) {
