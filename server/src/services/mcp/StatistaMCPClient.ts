@@ -268,7 +268,7 @@ export class StatistaMCPClient {
         params: {
           name: 'get-chart-data-by-id',
           arguments: {
-            statistic_id: parseInt(chartId, 10) // Convert to number as expected by the tool
+            id: parseInt(chartId, 10) // Convert to number as expected by the tool
           }
         },
         id: Date.now()
@@ -282,6 +282,8 @@ export class StatistaMCPClient {
       });
 
       const responseText = await response.text();
+      logger.info(`Chart data response length: ${responseText.length} bytes`);
+      logger.info(`Chart data response first 500 chars: ${responseText.substring(0, 500)}`);
 
       if (!response.ok) {
         throw new Error(`Statista chart data request failed: ${response.statusText} - ${responseText}`);
@@ -289,7 +291,9 @@ export class StatistaMCPClient {
 
       // Parse SSE format response
       if (responseText.includes('event:') || responseText.includes('data:')) {
+        logger.info('Detected SSE format in chart data response');
         const sseResult = SSEParser.parseSSEResponse(responseText);
+        logger.info(`Chart data SSE parse result: ${sseResult ? 'success' : 'null'}`);
         if (sseResult) {
           // Extract the result - Statista returns results in content[0].text format
           if (sseResult.result?.content && Array.isArray(sseResult.result.content)) {
