@@ -89,12 +89,13 @@
   - Root cause: No Authorization header sent → 401 errors → session invalidation
   - Fix: Added Authorization, X-Tenant-ID, X-Session-ID headers to fetch call
   - File: apps/web/src/components/CohortBuilder.tsx lines 136-158
-  - Changed relative path to full URL: http://localhost:4000/api/cohort/chat
+  - Uses relative path '/api/cohort/chat' (Vite proxy forwards to backend)
   - Added credentials: 'include' for cookie support
   - Note: Frontend should NOT be logged out during active SSE streaming
+  - Second fix: Corrected to use Vite proxy path instead of full URL (db3b329)
 - **Status:** ✅ COMPLETE (pending frontend test)
 - **Test Results:** All tests passed. Web search tool works correctly for concept bridging. Multi-tool handling fixed. Complex queries like "Find premium shoppers in Berlin" now properly use web search → catalog → SQL workflow.
-- **Commit Hashes:** 51441f6 (initial), 636eca2 (maxTokens correction), 3bdcc0b (streaming), 90d6575 (completion guidance), fa05cad (finalMessage fix), 5980ddf (frontend auth)
+- **Commit Hashes:** 51441f6 (initial), 636eca2 (maxTokens correction), 3bdcc0b (streaming), 90d6575 (completion guidance), fa05cad (finalMessage fix), 2e93e2b (frontend auth), db3b329 (proxy fix)
 
 ### Step 1.3: Enhance Catalog Tool Description
 - [x] **Task:** Update `server/src/routes/cohort.ts` lines 120-153
