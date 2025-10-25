@@ -495,10 +495,12 @@ User asks: "Show me young professionals"
             });
           } else {
             // No tools used - this is the final response
+            const textBlocks = assistantContent.filter(b => b.type === 'text');
             logger.info('No tool use detected, ending conversation', {
               iteration: iterations,
-              textBlockCount: assistantContent.filter(b => b.type === 'text').length,
-              hasContent: assistantContent.length > 0
+              textBlockCount: textBlocks.length,
+              hasContent: assistantContent.length > 0,
+              textPreview: textBlocks.length > 0 ? textBlocks[0].text?.substring(0, 100) : 'none'
             });
 
             // IMPORTANT: Add the final text response to conversation history
@@ -507,17 +509,32 @@ User asks: "Show me young professionals"
                 role: 'assistant',
                 content: assistantContent
               });
+
               logger.info('Added final assistant response to conversation', {
-                contentBlocks: assistantContent.length
+                contentBlocks: assistantContent.length,
+                textBlockCount: textBlocks.length
+              });
+
+              // Send explicit final_response event to client
+              await stream.writeSSE({
+                data: JSON.stringify({
+                  type: 'final_response',
+                  iteration: iterations,
+                  textBlockCount: textBlocks.length,
+                  message: 'Analysis complete - final response delivered'
+                })
               });
             }
 
             continueConversation = false;
           }
         }
-        
-        await stream.writeSSE({ 
-          data: JSON.stringify({ type: 'end' })
+
+        await stream.writeSSE({
+          data: JSON.stringify({
+            type: 'end',
+            totalIterations: iterations
+          })
         });
         
       } catch (error) {
