@@ -6,7 +6,6 @@ import { Logger } from '../services/logger';
 import { tenantMiddleware } from '../middleware/tenant';
 import configLoader from '../services/config/ConfigLoader';
 import { QueryExecutor } from '../services/mcp/QueryExecutor';
-import { StatistaMCPClient } from '../services/mcp/StatistaMCPClient';
 
 const logger = new Logger('cohort');
 const config = configLoader.loadConfig();
@@ -63,21 +62,6 @@ async function executeToolCall(toolName: string, toolInput: any, tenantId: strin
       const result = await executor.executeSQL(
         toolInput.sql || toolInput.query,  // MCP server expects 'sql' parameter
         cohortConfig.mcp.database || 'synthiedb'
-      );
-      return JSON.stringify(result);
-    } 
-    // Statista tools
-    else if (toolName === 'search-statistics' || toolName === 'search_statistics') {
-      const statista = await StatistaMCPClient.forTenant(tenantId);
-      const result = await statista.searchStatistics(
-        toolInput.query || toolInput.search,
-        toolInput.limit || 10
-      );
-      return JSON.stringify(result);
-    } else if (toolName === 'get-chart-data-by-id' || toolName === 'get_chart_data') {
-      const statista = await StatistaMCPClient.forTenant(tenantId);
-      const result = await statista.getChartData(
-        toolInput.id || toolInput.chartId || toolInput.chart_id
       );
       return JSON.stringify(result);
     }
@@ -151,29 +135,6 @@ cohort.post('/chat', async (c) => {
                   },
                   required: ['sql']
                 }
-              },
-              {
-                name: 'search_statistics',
-                description: 'Search Statista database for market statistics, consumer insights, and industry data',
-                input_schema: {
-                  type: 'object',
-                  properties: {
-                    query: { type: 'string', description: 'Search query for statistics (e.g., "organic food market Germany", "consumer spending electronics")' },
-                    limit: { type: 'number', description: 'Maximum number of results to return (default: 10)' }
-                  },
-                  required: ['query']
-                }
-              },
-              {
-                name: 'get_chart_data',
-                description: 'Get detailed data from a specific Statista chart by ID',
-                input_schema: {
-                  type: 'object',
-                  properties: {
-                    id: { type: 'string', description: 'The Statista chart ID to retrieve data from' }
-                  },
-                  required: ['id']
-                }
               }
             ]
           });
@@ -240,11 +201,6 @@ cohort.post('/chat', async (c) => {
                 resultSummary = `Executed SQL query (${parsedResult.data?.length || 0} rows)`;
               } else if (block.name === 'catalog') {
                 resultSummary = 'Retrieved database schema';
-              } else if (block.name === 'search_statistics' || block.name === 'search-statistics') {
-                const count = parsedResult.items?.length || parsedResult.results?.length || parsedResult.data?.length || 0;
-                resultSummary = `Found ${count} Statista statistics`;
-              } else if (block.name === 'get_chart_data') {
-                resultSummary = 'Retrieved Statista chart data';
               } else {
                 resultSummary = `Retrieved ${block.name} data`;
               }

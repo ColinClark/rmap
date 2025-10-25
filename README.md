@@ -66,7 +66,7 @@ A comprehensive multi-tenant SaaS marketing platform for managing retail media c
 - Node.js 20+ and npm 10+
 - MongoDB Atlas account (free tier works)
 - Git
-- API keys for integrations (Anthropic, Statista)
+- API keys for integrations (Anthropic)
 
 ### Quick Start
 
@@ -91,7 +91,6 @@ cp .env.example .env
 # - MONGODB_URI: Your MongoDB Atlas connection string
 # - JWT_SECRET: Secret for JWT token signing
 # - ANTHROPIC_API_KEY: For AI-powered cohort building
-# - STATISTA_API_KEY: For market data integration
 ```
 
 4. **Start development servers**
@@ -179,7 +178,6 @@ VITE_API_URL=https://api.yourdomain.com
 MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/?retryWrites=true&w=majority&appName=AppName
 JWT_SECRET=your-secret-key
 ANTHROPIC_API_KEY=sk-ant-api03-...
-STATISTA_API_KEY=your-statista-key
 NODE_ENV=production
 PORT=4000
 ```

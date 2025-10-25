@@ -53,9 +53,6 @@ export const appConfig = {
     anthropic: {
       apiKey: process.env.ANTHROPIC_API_KEY,
     },
-    statista: {
-      apiKey: process.env.STATISTA_API_KEY,
-    },
   },
 
   // Logging

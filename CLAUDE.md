@@ -2,9 +2,35 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Quick Start
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Configure environment (copy and edit .env.example)
+cp .env.example .env
+
+# 3. Start backend FIRST (required)
+cd server && npm run dev
+
+# 4. Start frontend (in new terminal from root)
+npm run dev:web        # or npm run dev:admin
+
+# Login credentials
+# Web app:   demo@example.com / Demo123
+# Admin:     admin@rmap.com / Admin123
+```
+
 ## Project Overview
 
 **RMAP (Retail Media Advertising Platform)** - A comprehensive multi-tenant SaaS marketing platform for managing retail media campaigns, audience segments, and cross-channel advertising. Built with React, TypeScript, Hono backend, and designed for enterprise-scale cloud deployment with subscription-based pricing.
+
+**Key Technologies:**
+- Frontend: React 18 + TypeScript + Vite + Tailwind CSS + Radix UI
+- Backend: Hono + MongoDB Atlas + JWT auth
+- AI/Data: Anthropic Claude + MCP (SynthiePop 83M records)
+- Architecture: Turborepo monorepo with workspace packages
 
 ## Key Principles
 
@@ -21,29 +47,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Install all dependencies (from root)
 npm install
 
-# Start backend first (REQUIRED - run in separate terminal)
+# REQUIRED: Start backend FIRST (in separate terminal)
 cd server
-npm install
-npm run dev                # Backend on port 4000
+npm run dev                # Backend on http://localhost:4000
 
 # Then start frontend apps (in another terminal from root)
 npm run dev                # All apps via Turborepo
-npm run dev:web            # Web app only (port 3000)
-npm run dev:admin          # Admin app only (port 3001)
-npm run dev:frontend       # Both web and admin apps
+npm run dev:web            # Web app only on http://localhost:3000
+npm run dev:admin          # Admin app only on http://localhost:3001
+npm run dev:apps           # Both web and admin apps only
+npm run dev:frontend       # Alias for dev:apps
 
 # Build commands
-npm run build              # Build everything
+npm run build              # Build everything with Turborepo caching
 npm run build:web          # Build web app only
 npm run build:admin        # Build admin app only
 
 # Type checking and linting
 cd server && npm run typecheck  # Backend type check
-cd apps/web && npm run lint     # Lint web app
-cd apps/admin && npm run lint   # Lint admin app
+cd apps/web && npm run type-check && npm run lint     # Web app
+cd apps/admin && npm run type-check && npm run lint   # Admin app
+
+# Preview production builds
+cd apps/web && npm run preview    # Preview web build
+cd apps/admin && npm run preview  # Preview admin build
 ```
 
-**Critical:** Backend server MUST be running before starting frontend apps. All authentication and API calls will fail otherwise.
+**Critical Notes:**
+- Backend server MUST be running before starting frontend apps. All authentication and API calls will fail otherwise.
+- The backend runs on port 4000, web app on port 3000, and admin portal on port 3001.
+- `npm run dev` from root runs Turborepo for **frontend apps only** - it does NOT start the backend server.
+- If using SynthiePop MCP features, ensure the SynthiePop MCP server is running on localhost:8002 separately.
 
 ## Architecture
 
@@ -90,14 +124,24 @@ The application is a multi-tenant SaaS platform with:
    - RetailMediaWorkflow - Complete 8-step campaign workflow
 
 #### Workflow Components (RetailMediaWorkflow)
+The workflow is an 8-step process managed by state in `RetailMediaWorkflow.tsx`:
+
 1. **BrandProductSelection** - Initial brand/product selection
 2. **CampaignSetup** - Campaign configuration (budget, timeline, objectives)
-3. **CohortBuilder** - AI-powered natural language audience segmentation
-4. **AudienceRefinement** - Demographic filtering and refinement
-5. **StrategyGenerator** - AI-driven strategy generation
-6. **ComparativeDashboard** - Strategy comparison and analysis
-7. **CollaborationPanel** - Campaign export and activation
-8. **PerformanceMonitoring** - Real-time campaign tracking
+3. **CohortBuilder** - AI-powered natural language audience segmentation using Claude
+4. **AudienceRefinement** - Demographic filtering with SynthiePop data (limited to 100 records for performance)
+5. **StrategyGenerator** - AI-driven strategy generation with multiple options
+6. **ComparativeDashboard** - Strategy comparison and ROI analysis
+7. **CollaborationPanel** - Campaign export and activation to channels
+8. **PerformanceMonitoring** - Real-time campaign tracking with AI insights (only available after activation)
+
+**Key workflow data structures:**
+- `CampaignData` - Main state object containing all workflow data
+- `SynthiePopData` - Demographic data from 83M synthetic German population
+- `ProxyCohort` - AI-mapped audience segments
+- `Strategy` - Generated campaign strategies with channels and budget allocation
+- `ChannelPerformance` - Real-time performance metrics per channel
+- `CampaignActivation` - Activation status and channel connections
 
 #### Component Organization
 ```
@@ -152,12 +196,17 @@ apps/web/src/
 - **debug.ts** - Debug utilities
 
 #### MCP (Model Context Protocol) Integrations
-- **SynthiePop MCP** - Access to 83M synthetic German population records
-  - Host: localhost:8002
+Located at `server/src/services/mcp/`:
+
+- **SynthiePop MCP** (`synthiepop.ts`) - Access to 83M synthetic German population records
+  - **Requires separate MCP server** running on localhost:8002
+  - This is an external service that must be started independently
   - Tools: catalog, sql, search
-- **Statista MCP** - Market data and statistics
-  - URL: https://api.statista.ai/v1
-  - Tools: search-statistics, get-chart-data-by-id
+  - Used for demographic data queries and audience segmentation (AudienceRefinement workflow step)
+
+Configuration loaded from `server/src/services/config/ConfigLoader.ts`
+
+**Important:** If SynthiePop MCP server is not running, audience refinement features will fail. The server is a separate process and not part of this monorepo.
 
 #### Email Service
 - **EmailService** - Handles all email operations
@@ -232,34 +281,48 @@ const canAddUser = tenant.subscription.usage.users < tenant.subscription.limits.
 
 ## Environment Variables
 
-### Backend (server/.env)
+### Root (.env at project root)
 ```env
-# Database
-MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/?retryWrites=true&w=majority&appName=RMAP
+# API Keys - Required for AI and data integrations
+ANTHROPIC_API_KEY=sk-ant-api03-your-key-here
 
-# Authentication
-JWT_SECRET=your-secret-key-here
+# MongoDB Atlas - Required for data persistence
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority&appName=RMAP
+MONGODB_CLIENT_ID=mdb_sa_id_your_client_id
+MONGODB_CLIENT_SECRET=mdb_sa_sk_your_client_secret
+MONGODB_PROJECT_ID=your_project_id
+
+# Server Configuration
+NODE_ENV=development
+PORT=4000
+FRONTEND_URL=http://localhost:3000
+
+# JWT Authentication
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 JWT_EXPIRES_IN=24h
 
-# API Keys
-ANTHROPIC_API_KEY=sk-ant-api03-...
-STATISTA_API_KEY=...
-
-# Email (Production)
+# Email Configuration (Development uses Ethereal)
+# In dev: Check server logs for Ethereal credentials
+# In prod: Set SMTP variables
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=...
 SMTP_PASS=...
+```
 
-# Server
-NODE_ENV=development
-PORT=4000
+### Backend (server/.env) - Optional overrides
+Backend can load additional configuration from `server/.env` which takes precedence over root `.env`:
+```env
+# Override API keys or add server-specific config
+ANTHROPIC_API_KEY=sk-ant-api03-...
 ```
 
 ### Frontend (apps/web/.env and apps/admin/.env)
 ```env
 VITE_API_URL=http://localhost:4000
 ```
+
+**Note:** Use `.env.example` as template. The `.env` files are git-ignored for security.
 
 ## Deployment Considerations
 
@@ -296,9 +359,13 @@ VITE_API_URL=http://localhost:4000
 
 ## Testing Strategy
 
-### Multi-tenant Testing
+**Note:** Test infrastructure is not yet implemented in this codebase.
+
+### Recommended Testing Approach
+When implementing tests, follow these patterns:
+
 ```typescript
-// Always test with multiple tenant contexts
+// Multi-tenant isolation testing
 describe('Campaign API', () => {
   it('should isolate data between tenants', async () => {
     const tenant1Data = await api.get('/campaigns', { tenant: 'tenant1' });
@@ -307,6 +374,41 @@ describe('Campaign API', () => {
   });
 });
 ```
+
+### Available Test Endpoints
+- `/test-mcp` - Test MCP integrations (SynthiePop)
+- `/test-email` - Test email service (development only)
+- `/debug` - Debug utilities and diagnostics
+
+## Debugging & Request Tracking
+
+### Correlation IDs
+The platform uses correlation IDs to track requests across the entire stack:
+
+- **Automatic Generation**: Every request gets a unique correlation ID via `requestContext.ts` middleware
+- **Header**: `X-Correlation-ID` - automatically added to all requests
+- **Frontend**: Generated in `services/correlationId.ts` and attached to API calls via `services/api.ts`
+- **Backend**: Logged in all middleware and can be used to trace a request through logs
+- **Logging**: All structured logs include the correlation ID for easy filtering
+
+**Usage for debugging:**
+```typescript
+// Backend - correlation ID automatically available in context
+Logger.info('Processing campaign', { correlationId, campaignId });
+
+// Frontend - included automatically in all API calls
+const response = await api.get('/campaigns'); // Correlation ID auto-attached
+```
+
+**Finding requests in logs:**
+```bash
+# Search server logs for specific correlation ID
+grep "correlation-id-here" server/logs/*.log
+
+# All logs use structured JSON format with correlationId field
+```
+
+This makes it easy to trace a user action from frontend → API → database → response across all log files.
 
 ## Current Architecture State
 
@@ -334,7 +436,7 @@ describe('Campaign API', () => {
 4. **Web App**
    - Retail Media Workflow (8 steps)
    - Data Query tool with natural language
-   - MCP integrations (SynthiePop, Statista)
+   - MCP integrations (SynthiePop)
    - Tailwind CSS v4 styling
 
 ### ⚠️ Known Issues & Fixes Applied
@@ -432,15 +534,39 @@ const campaigns = await db.collection('campaigns').find({ tenantId });
 - Never mix admin and tenant contexts
 
 ## Important Development Notes
-- Always use the structured logging system (Logger class)
+
+### General
+- Always use the structured logging system (`Logger` class from `server/src/utils/logger.ts`)
 - Check for existing components before creating new ones
-- Types should be imported from `@rmap/types` in monorepo packages
-- Limit database queries to reasonable sizes for UI display
+- Limit database queries to reasonable sizes for UI display (e.g., AudienceRefinement limited to 100 records)
 - Use environment variables for all API keys and secrets
-- Run backend BEFORE starting frontend apps
-- Both apps need backend running for auth to work
-- Admin portal has SEPARATE auth from main app
-- Environment files (.env) are git-ignored - never commit secrets
+- Environment files (`.env`) are git-ignored - never commit secrets
+
+### Monorepo Packages
+- Shared types: Import from `@rmap/types` package
+- Shared UI components: Import from `@rmap/ui` package
+- Package references use `file:` protocol (e.g., `"@rmap/types": "file:../../packages/types"`)
+- Build types package first if encountering type errors: `cd packages/types && npm run build`
+
+### Backend Development
+- Run backend BEFORE starting frontend apps (required for auth and all API calls)
+- Server startup sequence: MongoDB connection → Email service init → Platform services → Server start
+- Admin portal uses SEPARATE authentication (`/api/admin/*`) from tenant app (`/api/auth/*`)
+- All tenant-scoped routes use `/api/*` prefix and require tenant middleware
+- Use correlation IDs for request tracking (see "Debugging & Request Tracking" section for details)
+
+### Frontend Development
+- Web app (port 3000): Uses Tailwind CSS v4
+- Admin app (port 3001): Uses Tailwind CSS v3
+- Both apps use Vite with `@vitejs/plugin-react` (not `plugin-react-swc`)
+- Always use authenticated API calls through `services/api.ts`
+- Handle CORS by ensuring backend includes your port in allowed origins
+
+### Testing Email Service
+- Development mode uses Ethereal (auto-configured)
+- Check server logs for Ethereal credentials on startup
+- View test emails at https://ethereal.email/messages
+- Test endpoint: `/test-email` (development only)
 
 ## 📚 Documentation Links
 

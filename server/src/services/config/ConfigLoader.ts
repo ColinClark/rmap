@@ -27,28 +27,6 @@ interface MCPConfig {
   };
 }
 
-interface StatistaMCPConfig {
-  enabled: boolean;
-  baseUrl: string;
-  protocol: string;
-  endpoints: {
-    health: string;
-    execute: string;
-  };
-  connection: {
-    timeout: number;
-    maxRetries: number;
-    retryDelay: number;
-  };
-  streaming: {
-    enabled: boolean;
-    format: string;
-  };
-  security?: {
-    apiKey?: string;
-  };
-}
-
 interface ServerConfig {
   server: {
     port: number;
@@ -56,7 +34,6 @@ interface ServerConfig {
   };
   mcp: {
     synthiepop: MCPConfig;
-    statista?: StatistaMCPConfig;
   };
   database: {
     url: string;
@@ -201,11 +178,6 @@ class ConfigLoader {
     return config.mcp.synthiepop;
   }
 
-  getStatistaMCPConfig(): StatistaMCPConfig | undefined {
-    const config = this.getConfig();
-    return config.mcp.statista;
-  }
-
   private getDefaultConfig(): ServerConfig {
     return {
       server: {
@@ -281,14 +253,12 @@ You help users explore and build precise audience segments from Germany's 83M sy
 
 You have access to powerful tools:
 1. **SynthiePop Database** (catalog, sql) - Query Germany's 83M synthetic population
-2. **Statista Market Data** (search_statistics, get_chart_data) - Bridge concepts to database attributes
-3. **Web Search** - For additional research when needed
+2. **Web Search** - For additional research when needed
 
 INTELLIGENT TOOL SELECTION:
 - Use database directly for clear demographic queries
-- Use Statista to bridge abstract concepts to concrete attributes
-- Use Statista for market validation and consumer insights
-- Web Search only when Statista lacks specific data
+- Use Web Search to bridge abstract concepts to concrete attributes
+- Use Web Search for market validation and consumer insights
 
 The synthiedb database has ONE TABLE called 'synthie' with 83M records containing:
 - Demographics: age, gender, state_label, income, education_level, occupation, household_size, household_children
@@ -347,4 +317,4 @@ Response format:
 }
 
 export default ConfigLoader.getInstance();
-export { MCPConfig, StatistaMCPConfig, ServerConfig };
+export { MCPConfig, ServerConfig };

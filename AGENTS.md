@@ -35,7 +35,7 @@
 - Keep PRs focused and under ~300 lines where practical; update relevant docs in `docs/`.
 
 ## Security & Configuration Tips
-- **Environment**: Use `.env` files (never commit secrets). Required: `MONGODB_URI`, `JWT_SECRET`, `ANTHROPIC_API_KEY`, `STATISTA_API_KEY`.
+- **Environment**: Use `.env` files (never commit secrets). Required: `MONGODB_URI`, `JWT_SECRET`, `ANTHROPIC_API_KEY`.
 - **Database**: MongoDB Atlas with tenant isolation via document filtering.
 - **Validation**: Use Zod on server routes; handle errors via centralized `app.onError`.
 - **Multi-tenancy**: All API routes require tenant context via middleware.

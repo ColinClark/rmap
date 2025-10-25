@@ -72,7 +72,6 @@ RMAP (Retail Media Advertising Platform) is a comprehensive multi-tenant SaaS ma
 ### Integrations
 - **MCP (Model Context Protocol)**: AI integrations for advanced features
   - SynthiePop: 83M synthetic German population records
-  - Statista: Market data and statistics
 - **Retail Media Platforms**: Ready for integration with Amazon DSP, Walmart Connect, etc.
 
 ## Project Status
