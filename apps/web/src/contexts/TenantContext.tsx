@@ -68,6 +68,20 @@ export const TenantProvider = ({ children }: { children: ReactNode }) => {
     loadTenant();
   }, []);
 
+  // Listen for login events to reload tenant data
+  useEffect(() => {
+    const handleLoginSuccess = () => {
+      console.log('Login event detected, reloading tenant...');
+      loadTenant();
+    };
+
+    window.addEventListener('auth:login', handleLoginSuccess);
+
+    return () => {
+      window.removeEventListener('auth:login', handleLoginSuccess);
+    };
+  }, []);
+
   const loadTenant = async () => {
     try {
       // Check if user is authenticated

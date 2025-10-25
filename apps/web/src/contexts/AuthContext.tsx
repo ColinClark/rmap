@@ -133,6 +133,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const interval = setInterval(checkTokenExpiry, 60000); // Check every minute
         setTokenCheckInterval(interval);
 
+        // Notify other contexts that login succeeded
+        window.dispatchEvent(new Event('auth:login'));
+
         // Navigate to dashboard after successful login
         navigate('/dashboard');
       } else {
@@ -165,6 +168,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         const interval = setInterval(checkTokenExpiry, 60000); // Check every minute
         setTokenCheckInterval(interval);
+
+        // Notify other contexts that login succeeded
+        window.dispatchEvent(new Event('auth:login'));
 
         // Navigate to dashboard after successful registration
         navigate('/dashboard');
