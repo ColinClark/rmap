@@ -138,8 +138,8 @@ AND tech_affinity > 0.8`,
       const tenantId = localStorage.getItem('tenantId');
       const sessionId = sessionStorage.getItem('sessionId');
 
-      // Send to real API with streaming
-      const response = await fetch('http://localhost:4000/api/cohort/chat', {
+      // Send to real API with streaming (using relative path - Vite proxy forwards to backend)
+      const response = await fetch('/api/cohort/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
