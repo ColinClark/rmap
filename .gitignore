@@ -80,6 +80,10 @@ pnpm-lock.yaml
 *.sqlite3
 database/
 
+# Agent Memory Storage
+server/memory/*
+!server/memory/.gitkeep
+
 # OS files
 Thumbs.db
 .DS_Store
