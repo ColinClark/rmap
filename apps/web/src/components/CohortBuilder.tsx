@@ -133,12 +133,21 @@ AND tech_affinity > 0.8`,
     setIsLoading(true);
 
     try {
+      // Get authentication and tenant context
+      const accessToken = localStorage.getItem('accessToken');
+      const tenantId = localStorage.getItem('tenantId');
+      const sessionId = sessionStorage.getItem('sessionId');
+
       // Send to real API with streaming
-      const response = await fetch('/api/cohort/chat', {
+      const response = await fetch('http://localhost:4000/api/cohort/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
+          ...(tenantId && { 'X-Tenant-ID': tenantId }),
+          ...(sessionId && { 'X-Session-ID': sessionId }),
         },
+        credentials: 'include',
         body: JSON.stringify({
           messages: messages.map(m => ({
             role: m.type === 'user' ? 'user' : 'assistant',

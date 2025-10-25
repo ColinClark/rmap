@@ -83,9 +83,18 @@
   - Fix: Use finalMessage.content directly (canonical source of all blocks)
   - Streaming events are only for real-time client updates, not content tracking
   - Now properly detects and preserves final text responses (e.g., 27 text blocks)
-- **Status:** ✅ COMPLETE
+- [x] **Fix:** CRITICAL - Frontend authentication headers missing in SSE requests
+  - Bug: CohortBuilder.tsx was using raw fetch() without auth headers
+  - Result: Long-running analyses (2-3min) causing logout/timeout
+  - Root cause: No Authorization header sent → 401 errors → session invalidation
+  - Fix: Added Authorization, X-Tenant-ID, X-Session-ID headers to fetch call
+  - File: apps/web/src/components/CohortBuilder.tsx lines 136-158
+  - Changed relative path to full URL: http://localhost:4000/api/cohort/chat
+  - Added credentials: 'include' for cookie support
+  - Note: Frontend should NOT be logged out during active SSE streaming
+- **Status:** ✅ COMPLETE (pending frontend test)
 - **Test Results:** All tests passed. Web search tool works correctly for concept bridging. Multi-tool handling fixed. Complex queries like "Find premium shoppers in Berlin" now properly use web search → catalog → SQL workflow.
-- **Commit Hashes:** 51441f6 (initial), 636eca2 (maxTokens correction), 3bdcc0b (streaming), 90d6575 (completion guidance), fa05cad (finalMessage fix)
+- **Commit Hashes:** 51441f6 (initial), 636eca2 (maxTokens correction), 3bdcc0b (streaming), 90d6575 (completion guidance), fa05cad (finalMessage fix), 5980ddf (frontend auth)
 
 ### Step 1.3: Enhance Catalog Tool Description
 - [x] **Task:** Update `server/src/routes/cohort.ts` lines 120-153
