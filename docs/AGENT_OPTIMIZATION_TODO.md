@@ -62,9 +62,15 @@
 - [x] **Test:** Verify no context window errors
 - [x] **Test:** Verify longer conversations complete successfully
 - [x] **Commit:** "feat: Add web search, increase tokens, fix multi-tool handling, emphasize concept bridging"
+- [x] **Fix:** Corrected maxTokens from 8192 to 32768 (model supports 64K output, 200K input)
+- [x] **Fix:** Implemented proper streaming API (messages.stream() vs messages.create())
+  - Required for maxTokens > ~8K to avoid SDK timeout error
+  - Now properly streams text deltas to client in real-time
+  - Handles content_block_delta events for progressive text streaming
+  - Waits for finalMessage() to collect all blocks including tool uses
 - **Status:** ✅ COMPLETE
 - **Test Results:** All tests passed. Web search tool works correctly for concept bridging. Multi-tool handling fixed. Complex queries like "Find premium shoppers in Berlin" now properly use web search → catalog → SQL workflow.
-- **Commit Hash:** 51441f6
+- **Commit Hashes:** 51441f6 (initial), 636eca2 (maxTokens correction), 3bdcc0b (streaming implementation)
 
 ### Step 1.3: Enhance Catalog Tool Description
 - [x] **Task:** Update `server/src/routes/cohort.ts` lines 120-153
