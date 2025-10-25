@@ -248,13 +248,13 @@ cohort.post('/chat', async (c) => {
         
         while (continueConversation && iterations < maxIterations) {
           iterations++;
-          logger.info('Creating stream iteration', { 
+          logger.info('Creating stream iteration', {
             iteration: iterations,
-            model: cohortConfig.llm.model 
+            model: cohortConfig.llm.model
           });
-          
-          // Create message (not stream for simplicity)
-          const response = await anthropicClient.messages.create({
+
+          // Create streaming message
+          const anthropicStream = anthropicClient.messages.stream({
             model: cohortConfig.llm.model,
             max_tokens: cohortConfig.llm.maxTokens,
             temperature: cohortConfig.llm.temperature,
@@ -371,31 +371,39 @@ User asks: "Show me young professionals"
             ]
           });
 
-          // Process response content
+          // Process streaming response
           let hasToolUse = false;
           let assistantContent: any[] = [];
           let toolResults: any[] = [];
+          let currentTextBlock = '';
 
-          logger.info('Response content blocks', {
-            blockCount: response.content.length,
-            types: response.content.map((b: any) => b.type)
+          // Handle stream events
+          anthropicStream.on('text', async (textDelta) => {
+            // Accumulate text as it streams
+            currentTextBlock += textDelta;
           });
 
-          // First pass: collect all content and execute all tools
-          for (const block of response.content) {
-            if (block.type === 'text') {
-              assistantContent.push(block);
-              // Stream text to client - distinguish between exploration and final results
-              const lowerText = block.text.toLowerCase();
+          anthropicStream.on('content_block_start', async (event) => {
+            if (event.content_block.type === 'text') {
+              currentTextBlock = '';
+            }
+          });
+
+          anthropicStream.on('content_block_delta', async (event) => {
+            if (event.delta.type === 'text_delta') {
+              currentTextBlock += event.delta.text;
+
+              // Stream text to client in real-time
+              const lowerText = currentTextBlock.toLowerCase();
               const isExploration = lowerText.includes('let me') ||
                                    lowerText.includes('checking') ||
                                    lowerText.includes('exploring') ||
                                    lowerText.includes('i need to') ||
                                    lowerText.includes('i\'ll check');
 
-              const isFinalResult = block.text.includes('##') ||
-                                   block.text.includes('**Cohort') ||
-                                   block.text.includes('### ') ||
+              const isFinalResult = currentTextBlock.includes('##') ||
+                                   currentTextBlock.includes('**Cohort') ||
+                                   currentTextBlock.includes('### ') ||
                                    lowerText.includes('here\'s your cohort') ||
                                    lowerText.includes('cohort overview');
 
@@ -408,14 +416,37 @@ User asks: "Show me young professionals"
 
               await stream.writeSSE({
                 data: JSON.stringify({
-                  type: 'content',
-                  content: block.text,
+                  type: 'content_delta',
+                  content: event.delta.text,
                   isExploration,
                   isFinalResult,
                   phase
                 })
               });
-            } else if (block.type === 'tool_use' && 'name' in block && 'input' in block && 'id' in block) {
+            }
+          });
+
+          anthropicStream.on('content_block_stop', async (event) => {
+            if (currentTextBlock) {
+              assistantContent.push({
+                type: 'text',
+                text: currentTextBlock
+              });
+              currentTextBlock = '';
+            }
+          });
+
+          // Wait for final message and collect all content blocks
+          const finalMessage = await anthropicStream.finalMessage();
+
+          logger.info('Response content blocks', {
+            blockCount: finalMessage.content.length,
+            types: finalMessage.content.map((b: any) => b.type)
+          });
+
+          // Process tool use blocks from final message
+          for (const block of finalMessage.content) {
+            if (block.type === 'tool_use' && 'name' in block && 'input' in block && 'id' in block) {
               hasToolUse = true;
               assistantContent.push(block);
               logger.info('Tool use detected', { toolName: block.name });
