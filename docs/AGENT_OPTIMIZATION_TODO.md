@@ -99,9 +99,18 @@
   - Frontend only showed tool_result and end events, missing all actual content
   - Fix: Updated event type check to accept both 'content_delta' and 'content' (line 209)
   - This explains why user saw "Analysis complete" notification but no actual analysis text
+- [x] **Fix:** CRITICAL - Backend not sending final text content to client (THE SMOKING GUN!)
+  - Bug: Backend received 49 text blocks in finalMessage but never sent them to client
+  - Root cause: content_delta events only fire during anthropicStream.on() callbacks
+  - By the time finalMessage arrives, streaming events are done
+  - Result: Final text blocks existed in server memory but were never transmitted
+  - Client only received final_response metadata event, not the actual 49 text blocks
+  - Fix: Loop through textBlocks and send each as content_delta event (lines 520-532)
+  - Each sent with isFinalResult: true and phase: 'finalizing'
+  - This happens BEFORE sending final_response metadata event
 - **Status:** ✅ COMPLETE (pending frontend test)
 - **Test Results:** All tests passed. Web search tool works correctly for concept bridging. Multi-tool handling fixed. Complex queries like "Find premium shoppers in Berlin" now properly use web search → catalog → SQL workflow.
-- **Commit Hashes:** 51441f6 (initial), 636eca2 (maxTokens correction), 3bdcc0b (streaming), 90d6575 (completion guidance), fa05cad (finalMessage fix), 2e93e2b (frontend auth), db3b329 (proxy fix), de31d0c (content_delta fix)
+- **Commit Hashes:** 51441f6 (initial), 636eca2 (maxTokens correction), 3bdcc0b (streaming), 90d6575 (completion guidance), fa05cad (finalMessage fix), 2e93e2b (frontend auth), db3b329 (proxy fix), de31d0c (content_delta fix), f8973f3 (THE FIX - send final content!)
 
 ### Step 1.3: Enhance Catalog Tool Description
 - [x] **Task:** Update `server/src/routes/cohort.ts` lines 120-153
