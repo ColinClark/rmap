@@ -205,8 +205,8 @@ AND tech_affinity > 0.8`,
               try {
                 const parsed = JSON.parse(data);
                 console.log('Parsed SSE data:', parsed);
-                
-                if (parsed.type === 'content') {
+
+                if (parsed.type === 'content_delta' || parsed.type === 'content') {
                   // Each content chunk creates or updates a message
                   setMessages(prev => {
                     const newMessages = [...prev];
