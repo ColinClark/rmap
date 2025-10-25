@@ -373,22 +373,10 @@ User asks: "Show me young professionals"
 
           // Process streaming response
           let hasToolUse = false;
-          let assistantContent: any[] = [];
           let toolResults: any[] = [];
           let currentTextBlock = '';
 
-          // Handle stream events
-          anthropicStream.on('text', async (textDelta) => {
-            // Accumulate text as it streams
-            currentTextBlock += textDelta;
-          });
-
-          anthropicStream.on('content_block_start', async (event) => {
-            if (event.content_block.type === 'text') {
-              currentTextBlock = '';
-            }
-          });
-
+          // Handle stream events (for real-time client updates only)
           anthropicStream.on('content_block_delta', async (event) => {
             if (event.delta.type === 'text_delta') {
               currentTextBlock += event.delta.text;
@@ -426,17 +414,11 @@ User asks: "Show me young professionals"
             }
           });
 
-          anthropicStream.on('content_block_stop', async (event) => {
-            if (currentTextBlock) {
-              assistantContent.push({
-                type: 'text',
-                text: currentTextBlock
-              });
-              currentTextBlock = '';
-            }
+          anthropicStream.on('content_block_stop', async () => {
+            currentTextBlock = '';
           });
 
-          // Wait for final message and collect all content blocks
+          // Wait for final message - this contains ALL content blocks
           const finalMessage = await anthropicStream.finalMessage();
 
           logger.info('Response content blocks', {
@@ -444,11 +426,14 @@ User asks: "Show me young professionals"
             types: finalMessage.content.map((b: any) => b.type)
           });
 
-          // Process tool use blocks from final message
+          // Use finalMessage.content as the complete assistant content
+          // This includes all text blocks AND tool_use blocks
+          const assistantContent = finalMessage.content;
+
+          // Check for tool use and execute tools
           for (const block of finalMessage.content) {
             if (block.type === 'tool_use' && 'name' in block && 'input' in block && 'id' in block) {
               hasToolUse = true;
-              assistantContent.push(block);
               logger.info('Tool use detected', { toolName: block.name });
 
               // Execute tool
@@ -529,10 +514,6 @@ User asks: "Show me young professionals"
 
             continueConversation = false;
           }
-
-          // Reset for next iteration
-          assistantContent = [];
-          toolResults = [];
         }
         
         await stream.writeSSE({ 
