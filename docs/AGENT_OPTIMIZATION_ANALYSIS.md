@@ -39,9 +39,9 @@ conversationMessages.push({ role: 'user', content: query });
 **Problems:**
 - No persistence across sessions
 - No automatic context cleanup
-- Array grows indefinitely → context window exhaustion
+- Array grows indefinitely → potential context window exhaustion (though model supports 200K input)
 - No way to reference past learnings
-- `maxTokens: 4096` limits conversation length
+- `maxTokens: 4096` unnecessarily limits response length (model supports up to 64K output)
 
 ### ✅ Anthropic Recommendation
 **Memory Tool Pattern** (file-based persistence):
@@ -277,20 +277,30 @@ cohortBuilder:
     temperature: 0.7
 ```
 
-**New config.yaml**:
+**Implemented config.yaml** (as of Phase 1):
 ```yaml
 cohortBuilder:
   llm:
     model: claude-sonnet-4-5-20250929
-    maxTokens: 8192  # Increased for longer conversations
+    maxTokens: 32768  # Model supports 64K output, 200K input
+    temperature: 0.7
+    maxIterations: 50
+```
+
+**Future config.yaml** (Phase 2+):
+```yaml
+cohortBuilder:
+  llm:
+    model: claude-sonnet-4-5-20250929
+    maxTokens: 32768
     temperature: 0.7
 
-    # New features
+    # Planned features (not yet implemented)
     context_management:
       enable_editing: true  # Auto-clear stale tools
-      enable_caching: true  # Cache system prompts
+      enable_caching: true  # Cache system prompts (DONE via API)
 
-    # Memory configuration
+    # Memory configuration (Phase 2)
     memory:
       enabled: true
       storage_path: './memory/{tenantId}'  # Per-tenant memory

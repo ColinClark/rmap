@@ -238,8 +238,8 @@ class ConfigLoader {
           apiKey: process.env.ANTHROPIC_API_KEY,
           streaming: true,
           temperature: 0.7,
-          maxTokens: 8192,
-          maxIterations: 20,
+          maxTokens: 32768,
+          maxIterations: 50,
           systemPrompt: `You are an expert Cohort Builder assistant for the Retail Media Audience Planner, specializing in audience demographics, psychographics, and SQL analysis using DuckDB.
 
 Your expertise includes:
