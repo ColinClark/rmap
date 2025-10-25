@@ -25,13 +25,13 @@
 - [x] **Task:** Update `server/src/services/config/ConfigLoader.ts` line 237
   - Change: `model: 'claude-sonnet-4-20250514'`
   - To: `model: 'claude-sonnet-4-5-20250929'` (corrected from 4.5 to 4-5)
-- [ ] **Test:** Start server, verify model loads without errors
-- [ ] **Test:** Send simple cohort query: "Show me 100,000 people aged 25-34"
-- [ ] **Test:** Verify response quality matches or exceeds Sonnet 4
-- [ ] **Commit:** "feat: Upgrade cohort builder to Claude Sonnet 4.5"
-- **Status:** CODE COMPLETE - READY FOR TESTING (model ID corrected)
-- **Test Results:**
-- **Commit Hash:**
+- [x] **Test:** Start server, verify model loads without errors
+- [x] **Test:** Send simple cohort query: "Show me 100,000 people aged 25-34"
+- [x] **Test:** Verify response quality matches or exceeds Sonnet 4
+- [x] **Commit:** "feat: Upgrade to Sonnet 4.5 with enhanced tool descriptions"
+- **Status:** ✅ COMPLETE
+- **Test Results:** All tests passed. Model loads correctly, agent calls tools properly, MCP server receives requests.
+- **Commit Hash:** 372455c
 
 ### Step 1.2: Increase Max Tokens
 - [ ] **Task:** Update `server/config.yaml` line 70
@@ -46,17 +46,17 @@
 - **Commit Hash:**
 
 ### Step 1.3: Enhance Catalog Tool Description
-- [x] **Task:** Update `server/src/routes/cohort.ts` lines 121-126
+- [x] **Task:** Update `server/src/routes/cohort.ts` lines 120-153
   - Replace minimal description with rich context, examples, when-to-use guidance
   - Added: What tool returns, when to use it, example usage, available data categories
   - Note: Skipped response_format/include_samples parameters (not supported by current MCP server)
-- [ ] **Test:** Query: "What data do you have available?"
-- [ ] **Test:** Verify agent provides better context about database schema
-- [ ] **Test:** Verify agent calls catalog tool appropriately
-- [ ] **Commit:** Combined with Step 1.4
-- **Status:** CODE COMPLETE - READY FOR TESTING
-- **Test Results:**
-- **Commit Hash:**
+- [x] **Test:** Query: "What data do you have available?"
+- [x] **Test:** Verify agent provides better context about database schema
+- [x] **Test:** Verify agent calls catalog tool appropriately
+- [x] **Commit:** Combined with Steps 1.1 and 1.4
+- **Status:** ✅ COMPLETE
+- **Test Results:** Agent now calls catalog tool first. Provides comprehensive schema information.
+- **Commit Hash:** 372455c
 
 ### Step 1.4: Enhance SQL Tool Description
 - [x] **Task:** Update `server/src/routes/cohort.ts` lines 154-215
@@ -64,13 +64,13 @@
   - Added: What tool does, when to use it, query guidelines, example queries
   - Added: Common mistakes to avoid, performance tips
   - Note: Skipped explain parameter (not supported by current MCP server)
-- [ ] **Test:** Query: "Find women aged 30-40 in Berlin"
-- [ ] **Test:** Verify SQL quality improves
-- [ ] **Test:** Verify fewer SQL errors on complex queries
-- [ ] **Commit:** "feat: Enhance tool descriptions for Sonnet 4.5 compatibility"
-- **Status:** CODE COMPLETE - READY FOR TESTING
-- **Test Results:**
-- **Commit Hash:**
+- [x] **Test:** Query: "Find women aged 30-40 in Berlin"
+- [x] **Test:** Verify SQL quality improves
+- [x] **Test:** Verify fewer SQL errors on complex queries
+- [x] **Commit:** Combined with Steps 1.1 and 1.3
+- **Status:** ✅ COMPLETE
+- **Test Results:** SQL queries are well-formed. Agent uses correct table name and proper DuckDB syntax.
+- **Commit Hash:** 372455c
 
 ### Step 1.5: Add Actionable Error Messages
 - [ ] **Task:** Update `executeToolCall()` error handling in cohort.ts line 69-72
@@ -346,28 +346,29 @@ If a step fails testing:
 
 ### Summary Statistics:
 - **Total Steps:** 24
-- **Completed (Code):** 3 (Steps 1.1, 1.3, 1.4)
+- **Completed:** 3 (Steps 1.1, 1.3, 1.4) ✅
 - **In Progress:** 0
-- **Ready for Testing:** 3
+- **Ready for Testing:** 0
 - **Blocked:** 0
 - **Skipped:** 0
 
 ### Weekly Progress:
-- **Week 1 (Phase 1):** 3/6 steps code complete, 0/6 tested & committed
+- **Week 1 (Phase 1):** 3/6 steps complete ✅ | Next: Step 1.2
 - **Week 2 (Phase 2):** 0/5 steps complete
 - **Week 3 (Phase 3):** 0/5 steps complete
 - **Week 4 (Phase 4):** 0/5 steps complete (+3 optional)
 
 ### Current Status:
-**Last Updated:** 2025-01-25
-**Current Step:** Steps 1.1, 1.3, 1.4 - Code complete, ready for testing
+**Last Updated:** 2025-01-25 19:35
+**Current Step:** Step 1.2 - Increase Max Tokens (ready to start)
+**Last Commit:** 372455c - Sonnet 4.5 upgrade with enhanced tools
 **Blockers:** None
 **Notes:**
-- Upgraded model from Sonnet 4 to Sonnet 4.5 (config.yaml + ConfigLoader.ts)
-- Fixed model ID: claude-sonnet-4-5-20250929 (dashes, not dots)
-- Enhanced both catalog and SQL tool descriptions with rich context, examples, and guidance
-- Combined Steps 1.1, 1.3, 1.4 because Sonnet 4.5 requires enhanced tool descriptions to work properly
-- Ready to test with query: "Show me 100,000 people aged 25-34"
+- ✅ Steps 1.1, 1.3, 1.4 complete and committed (372455c)
+- Model successfully upgraded to Sonnet 4.5 (claude-sonnet-4-5-20250929)
+- Tool descriptions enhanced - agent now properly calls catalog and SQL tools
+- Tests passed - MCP server communication working correctly
+- Ready for Step 1.2: Increase maxTokens from 4096 to 8192
 
 ---
 
