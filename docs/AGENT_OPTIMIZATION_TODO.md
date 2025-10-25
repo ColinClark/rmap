@@ -93,9 +93,15 @@
   - Added credentials: 'include' for cookie support
   - Note: Frontend should NOT be logged out during active SSE streaming
   - Second fix: Corrected to use Vite proxy path instead of full URL (db3b329)
+- [x] **Fix:** CRITICAL - Frontend ignoring all streaming content
+  - Bug: Backend sends `type: 'content_delta'` but frontend checked for `type: 'content'`
+  - Result: All 31 text blocks in final analysis were streamed but never displayed
+  - Frontend only showed tool_result and end events, missing all actual content
+  - Fix: Updated event type check to accept both 'content_delta' and 'content' (line 209)
+  - This explains why user saw "Analysis complete" notification but no actual analysis text
 - **Status:** ✅ COMPLETE (pending frontend test)
 - **Test Results:** All tests passed. Web search tool works correctly for concept bridging. Multi-tool handling fixed. Complex queries like "Find premium shoppers in Berlin" now properly use web search → catalog → SQL workflow.
-- **Commit Hashes:** 51441f6 (initial), 636eca2 (maxTokens correction), 3bdcc0b (streaming), 90d6575 (completion guidance), fa05cad (finalMessage fix), 2e93e2b (frontend auth), db3b329 (proxy fix)
+- **Commit Hashes:** 51441f6 (initial), 636eca2 (maxTokens correction), 3bdcc0b (streaming), 90d6575 (completion guidance), fa05cad (finalMessage fix), 2e93e2b (frontend auth), db3b329 (proxy fix), de31d0c (content_delta fix)
 
 ### Step 1.3: Enhance Catalog Tool Description
 - [x] **Task:** Update `server/src/routes/cohort.ts` lines 120-153
