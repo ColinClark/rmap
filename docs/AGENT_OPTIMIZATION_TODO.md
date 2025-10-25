@@ -77,9 +77,15 @@
   - Previously discarded final text-only response when no tools used
   - Now adds final assistant response to conversationMessages before stopping
   - Better logging to track completion behavior
+- [x] **Fix:** CRITICAL - Use finalMessage.content for all content blocks
+  - Bug: Was manually building assistantContent during streaming, then resetting it
+  - Result: assistantContent was empty when checking for final response
+  - Fix: Use finalMessage.content directly (canonical source of all blocks)
+  - Streaming events are only for real-time client updates, not content tracking
+  - Now properly detects and preserves final text responses (e.g., 27 text blocks)
 - **Status:** ✅ COMPLETE
 - **Test Results:** All tests passed. Web search tool works correctly for concept bridging. Multi-tool handling fixed. Complex queries like "Find premium shoppers in Berlin" now properly use web search → catalog → SQL workflow.
-- **Commit Hashes:** 51441f6 (initial), 636eca2 (maxTokens correction), 3bdcc0b (streaming), 90d6575 (completion guidance)
+- **Commit Hashes:** 51441f6 (initial), 636eca2 (maxTokens correction), 3bdcc0b (streaming), 90d6575 (completion guidance), fa05cad (finalMessage fix)
 
 ### Step 1.3: Enhance Catalog Tool Description
 - [x] **Task:** Update `server/src/routes/cohort.ts` lines 120-153
