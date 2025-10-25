@@ -119,7 +119,33 @@ cohort.post('/chat', async (c) => {
             tools: [
               {
                 name: 'catalog',
-                description: 'Get catalog of available fields in the synthie database',
+                description: `Explore the schema of the synthie database containing 83M German population records.
+
+**What this tool returns:**
+- Available columns with their data types (demographics, psychographics, behaviors)
+- Sample values to understand the data
+- Value ranges and distributions
+- Column descriptions and meanings
+
+**When to use this tool:**
+- ALWAYS call this FIRST in every new conversation to understand available data
+- When you don't know the exact column names
+- When you need to see example values before writing SQL
+- When exploring what demographic/psychographic data is available
+
+**Example usage:**
+User asks: "Show me young professionals"
+→ First call catalog to find age and occupation columns
+→ See sample values to understand how occupations are labeled
+→ Then write SQL with correct column names
+
+**Important:** The database has ONE table called 'synthie' with 83M records. All queries use this table name.
+
+**Available data categories:**
+- Demographics: age, gender, state_label, income, education_level, occupation, household_size, household_children
+- Psychographics: innovation_score, shopping_preference, brand_affinity, lifestyle_segment
+- Behaviors: shopping_frequency, shopping_location, online_shopping_propensity, category_affinity_*
+- Geographic: bundesland, city_size_category, urban_rural_flag`,
                 input_schema: {
                   type: 'object',
                   properties: {}
@@ -127,11 +153,62 @@ cohort.post('/chat', async (c) => {
               },
               {
                 name: 'sql',
-                description: 'Execute SQL query on the synthie database',
+                description: `Execute SQL queries on the synthie database (83M German population records).
+
+**What this tool does:**
+- Runs DuckDB SQL queries against the 'synthie' table
+- Returns query results with row count
+- Provides data for cohort analysis and demographic breakdowns
+
+**When to use this tool:**
+- After calling catalog to understand available columns
+- To get cohort sizes: SELECT COUNT(*) FROM synthie WHERE ...
+- To get demographic breakdowns: SELECT column, COUNT(*) FROM synthie GROUP BY column
+- To analyze specific segments with filters
+
+**Query guidelines:**
+- Table name is ALWAYS 'synthie' (not 'synthiedb' or other variations)
+- Start with COUNT queries to check cohort size before detailed queries
+- Use WHERE clauses for filtering (age, income, location, etc.)
+- Use GROUP BY for demographic breakdowns
+- Calculate percentages: (COUNT(*) * 100.0 / 83000000) AS percentage
+- Limit large result sets for performance
+
+**Example queries:**
+
+1. Get cohort size:
+   SELECT COUNT(*) FROM synthie WHERE age BETWEEN 25 AND 34
+
+2. Demographic breakdown:
+   SELECT gender, COUNT(*) as count
+   FROM synthie
+   WHERE age BETWEEN 25 AND 34
+   GROUP BY gender
+
+3. Complex filtering:
+   SELECT COUNT(*) FROM synthie
+   WHERE age BETWEEN 25 AND 34
+     AND income > 50000
+     AND state_label = 'Berlin'
+
+**Common mistakes to avoid:**
+- ❌ Wrong table name: SELECT * FROM synthiedb (incorrect)
+- ✅ Correct table name: SELECT * FROM synthie
+- ❌ Missing filters: SELECT * FROM synthie (returns 83M rows!)
+- ✅ Always filter: SELECT * FROM synthie WHERE age > 25 LIMIT 100
+
+**Performance tips:**
+- Use LIMIT for large result sets
+- Filter rows with WHERE before GROUP BY
+- Start with COUNT(*) to estimate result size
+- Avoid SELECT * without filters`,
                 input_schema: {
                   type: 'object',
                   properties: {
-                    sql: { type: 'string', description: 'SQL query to execute' }
+                    sql: {
+                      type: 'string',
+                      description: 'DuckDB SQL query to execute against the synthie table. Must be valid DuckDB syntax.'
+                    }
                   },
                   required: ['sql']
                 }

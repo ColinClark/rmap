@@ -63,7 +63,7 @@ query:
 cohortBuilder:
   llm:
     provider: anthropic
-    model: claude-sonnet-4-20250514  # Claude Sonnet 4 model
+    model: claude-sonnet-4-5-20250929  # Claude Sonnet 4.5 model
     apiKey: ${ANTHROPIC_API_KEY}  # From environment variable
     streaming: true
     temperature: 0.7

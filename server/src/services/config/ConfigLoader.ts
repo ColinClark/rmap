@@ -234,7 +234,7 @@ class ConfigLoader {
       cohortBuilder: {
         llm: {
           provider: 'anthropic',
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-5-20250929',
           apiKey: process.env.ANTHROPIC_API_KEY,
           streaming: true,
           temperature: 0.7,
