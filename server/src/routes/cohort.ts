@@ -515,6 +515,22 @@ User asks: "Show me young professionals"
                 textBlockCount: textBlocks.length
               });
 
+              // CRITICAL: Send the actual text content to the client!
+              // The streaming events already fired, so we need to send the complete text now
+              for (const block of textBlocks) {
+                if (block.text) {
+                  await stream.writeSSE({
+                    data: JSON.stringify({
+                      type: 'content_delta',
+                      content: block.text,
+                      isExploration: false,
+                      isFinalResult: true,
+                      phase: 'finalizing'
+                    })
+                  });
+                }
+              }
+
               // Send explicit final_response event to client
               await stream.writeSSE({
                 data: JSON.stringify({
