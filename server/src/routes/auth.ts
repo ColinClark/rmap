@@ -74,6 +74,26 @@ authRoutes.post('/login', zValidator('json', loginSchema), async (c) => {
   // Set session cookie for web app
   c.header('Set-Cookie', `session=${result.session?.sessionToken}; HttpOnly; Path=/; SameSite=Strict; Max-Age=86400`)
 
+  // Get user permissions for the tenant
+  let tenantInfo = null
+  if (result.tenant) {
+    const tenantUsers = await userService.getTenantUsers(result.tenant.id)
+    const userInTenant = tenantUsers.find(tu => {
+      const tuUserId = tu.userId?.toString()
+      const resultUserId = result.user?._id?.toString()
+      return tuUserId === resultUserId
+    })
+
+    tenantInfo = {
+      id: result.tenant.id,
+      name: result.tenant.name,
+      slug: result.tenant.slug,
+      role: userInTenant?.tenantRole || 'member',
+      permissions: userInTenant?.permissions || [],
+      subscription: result.tenant.subscription
+    }
+  }
+
   return c.json({
     success: true,
     user: {
@@ -82,12 +102,7 @@ authRoutes.post('/login', zValidator('json', loginSchema), async (c) => {
       name: result.user?.name,
       emailVerified: result.user?.emailVerified
     },
-    tenant: result.tenant ? {
-      id: result.tenant.id,
-      name: result.tenant.name,
-      slug: result.tenant.slug,
-      subscription: result.tenant.subscription
-    } : null,
+    tenant: tenantInfo,
     tokens: {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken
@@ -120,6 +135,26 @@ authRoutes.post('/register', zValidator('json', registerSchema), async (c) => {
   // Set session cookie for web app
   c.header('Set-Cookie', `session=${result.session?.sessionToken}; HttpOnly; Path=/; SameSite=Strict; Max-Age=86400`)
 
+  // Get user permissions for the tenant
+  let tenantInfo = null
+  if (result.tenant) {
+    const tenantUsers = await userService.getTenantUsers(result.tenant.id)
+    const userInTenant = tenantUsers.find(tu => {
+      const tuUserId = tu.userId?.toString()
+      const resultUserId = result.user?._id?.toString()
+      return tuUserId === resultUserId
+    })
+
+    tenantInfo = {
+      id: result.tenant.id,
+      name: result.tenant.name,
+      slug: result.tenant.slug,
+      role: userInTenant?.tenantRole || 'member',
+      permissions: userInTenant?.permissions || [],
+      subscription: result.tenant.subscription
+    }
+  }
+
   return c.json({
     success: true,
     user: {
@@ -128,11 +163,7 @@ authRoutes.post('/register', zValidator('json', registerSchema), async (c) => {
       name: result.user?.name,
       emailVerified: result.user?.emailVerified
     },
-    tenant: result.tenant ? {
-      id: result.tenant.id,
-      name: result.tenant.name,
-      slug: result.tenant.slug
-    } : null,
+    tenant: tenantInfo,
     tokens: {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken
