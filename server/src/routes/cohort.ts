@@ -2,10 +2,12 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { streamSSE } from 'hono/streaming';
 import Anthropic from '@anthropic-ai/sdk';
+import { betaMemoryTool } from '@anthropic-ai/sdk/helpers/beta/memory';
 import { Logger } from '../services/logger';
 import { tenantMiddleware } from '../middleware/tenant';
 import configLoader from '../services/config/ConfigLoader';
 import { QueryExecutor } from '../services/mcp/QueryExecutor';
+import { MemoryService } from '../services/memory/MemoryService';
 
 const logger = new Logger('cohort');
 const config = configLoader.loadConfig();
@@ -177,7 +179,12 @@ If you need to see what data is available, call the 'catalog' tool first.`,
 }
 
 // Execute tool calls
-async function executeToolCall(toolName: string, toolInput: any, tenantId: string): Promise<string> {
+async function executeToolCall(
+  toolName: string,
+  toolInput: any,
+  tenantId: string,
+  memoryService?: MemoryService
+): Promise<string> {
   try {
     logger.info('Executing tool', { toolName, tenantId, hasInput: !!toolInput });
 
@@ -189,6 +196,33 @@ async function executeToolCall(toolName: string, toolInput: any, tenantId: strin
         note: 'Web search is handled by Anthropic',
         results: []
       });
+    }
+
+    // Memory tool commands
+    if (toolName === 'memory') {
+      if (!memoryService) {
+        throw new Error('Memory service not initialized');
+      }
+
+      const command = toolInput.command;
+      logger.info('Executing memory command', { command, tenantId });
+
+      switch (command) {
+        case 'view':
+          return await memoryService.view(toolInput);
+        case 'create':
+          return await memoryService.create(toolInput);
+        case 'str_replace':
+          return await memoryService.str_replace(toolInput);
+        case 'insert':
+          return await memoryService.insert(toolInput);
+        case 'delete':
+          return await memoryService.delete(toolInput);
+        case 'rename':
+          return await memoryService.rename(toolInput);
+        default:
+          throw new Error(`Unknown memory command: ${command}`);
+      }
     }
 
     // SynthiePop database tools
@@ -241,11 +275,15 @@ cohort.post('/chat', async (c) => {
         }));
         conversationMessages.push({ role: 'user', content: query });
 
+        // Initialize memory service for tenant
+        const memoryService = await MemoryService.init(tenant.id);
+        const memory = betaMemoryTool(memoryService);
+
         let continueConversation = true;
         let iterations = 0;
         const maxIterations = cohortConfig.llm.maxIterations || 20;
         let phase: 'exploring' | 'analyzing' | 'finalizing' = 'exploring';
-        
+
         while (continueConversation && iterations < maxIterations) {
           iterations++;
           logger.info('Creating stream iteration', {
@@ -367,8 +405,10 @@ User asks: "Show me young professionals"
                   },
                   required: ['sql']
                 }
-              }
-            ]
+              },
+              memory
+            ],
+            betas: ['context-management-2025-06-27']
           });
 
           // Process streaming response
@@ -440,7 +480,8 @@ User asks: "Show me young professionals"
               const toolResult = await executeToolCall(
                 block.name,
                 block.input,
-                tenant.id
+                tenant.id,
+                memoryService
               );
 
               // Send tool result to client with metadata
