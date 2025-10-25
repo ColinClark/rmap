@@ -51,7 +51,17 @@ interface CohortRequest {
 async function executeToolCall(toolName: string, toolInput: any, tenantId: string): Promise<string> {
   try {
     logger.info('Executing tool', { toolName, tenantId, hasInput: !!toolInput });
-    
+
+    // Web search is handled by Anthropic server-side, not by us
+    if (toolName === 'web_search') {
+      // This shouldn't be called since Anthropic handles web_search automatically
+      // But if it is, just return a placeholder
+      return JSON.stringify({
+        note: 'Web search is handled by Anthropic',
+        results: []
+      });
+    }
+
     // SynthiePop database tools
     if (toolName === 'catalog') {
       const executor = QueryExecutor.forTenant(tenantId);
@@ -117,6 +127,11 @@ cohort.post('/chat', async (c) => {
             system: cohortConfig.llm.systemPrompt,
             messages: conversationMessages,
             tools: [
+              {
+                type: 'web_search_20250305',
+                name: 'web_search',
+                max_uses: 5
+              },
               {
                 name: 'catalog',
                 description: `Explore the schema of the synthie database containing 83M German population records.
@@ -219,39 +234,41 @@ User asks: "Show me young professionals"
           // Process response content
           let hasToolUse = false;
           let assistantContent: any[] = [];
-          
-          logger.info('Response content blocks', { 
+          let toolResults: any[] = [];
+
+          logger.info('Response content blocks', {
             blockCount: response.content.length,
             types: response.content.map((b: any) => b.type)
           });
-          
+
+          // First pass: collect all content and execute all tools
           for (const block of response.content) {
             if (block.type === 'text') {
               assistantContent.push(block);
               // Stream text to client - distinguish between exploration and final results
               const lowerText = block.text.toLowerCase();
-              const isExploration = lowerText.includes('let me') || 
+              const isExploration = lowerText.includes('let me') ||
                                    lowerText.includes('checking') ||
                                    lowerText.includes('exploring') ||
                                    lowerText.includes('i need to') ||
                                    lowerText.includes('i\'ll check');
-              
-              const isFinalResult = block.text.includes('##') || 
+
+              const isFinalResult = block.text.includes('##') ||
                                    block.text.includes('**Cohort') ||
                                    block.text.includes('### ') ||
                                    lowerText.includes('here\'s your cohort') ||
                                    lowerText.includes('cohort overview');
-              
+
               // Update phase based on content
               if (isFinalResult) {
                 phase = 'finalizing';
               } else if (iterations > 3 && !isExploration) {
                 phase = 'analyzing';
               }
-              
+
               await stream.writeSSE({
-                data: JSON.stringify({ 
-                  type: 'content', 
+                data: JSON.stringify({
+                  type: 'content',
                   content: block.text,
                   isExploration,
                   isFinalResult,
@@ -262,26 +279,28 @@ User asks: "Show me young professionals"
               hasToolUse = true;
               assistantContent.push(block);
               logger.info('Tool use detected', { toolName: block.name });
-              
+
               // Execute tool
               const toolResult = await executeToolCall(
                 block.name,
                 block.input,
                 tenant.id
               );
-              
+
               // Send tool result to client with metadata
               const parsedResult = JSON.parse(toolResult);
               let resultSummary = '';
-              
+
               if (block.name === 'sql') {
                 resultSummary = `Executed SQL query (${parsedResult.data?.length || 0} rows)`;
               } else if (block.name === 'catalog') {
                 resultSummary = 'Retrieved database schema';
+              } else if (block.name === 'web_search') {
+                resultSummary = 'Web search completed';
               } else {
                 resultSummary = `Retrieved ${block.name} data`;
               }
-              
+
               await stream.writeSSE({
                 data: JSON.stringify({
                   type: 'tool_result',
@@ -290,27 +309,34 @@ User asks: "Show me young professionals"
                   resultSummary
                 })
               });
-              
-              // Add assistant message with content to conversation
-              conversationMessages.push({
-                role: 'assistant',
-                content: assistantContent
-              });
-              
-              // Add tool result to conversation
-              conversationMessages.push({
-                role: 'user',
-                content: [{
-                  type: 'tool_result',
-                  tool_use_id: block.id,
-                  content: toolResult
-                }]
+
+              // Collect tool result for later
+              toolResults.push({
+                type: 'tool_result',
+                tool_use_id: block.id,
+                content: toolResult
               });
             }
           }
-          
-          // Reset assistant content for next iteration
+
+          // After processing all blocks, add messages to conversation
+          if (hasToolUse) {
+            // Add ONE assistant message with all content blocks
+            conversationMessages.push({
+              role: 'assistant',
+              content: assistantContent
+            });
+
+            // Add ONE user message with all tool results
+            conversationMessages.push({
+              role: 'user',
+              content: toolResults
+            });
+          }
+
+          // Reset for next iteration
           assistantContent = [];
+          toolResults = [];
           
           // If no tool was used, we're done
           if (!hasToolUse) {
