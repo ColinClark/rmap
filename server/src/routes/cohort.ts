@@ -304,6 +304,15 @@ cohort.post('/chat', async (c) => {
               }
             ],
             messages: conversationMessages,
+            context_management: {
+              edits: [{
+                type: 'clear_tool_uses_20250919',
+                trigger: { type: 'input_tokens', value: 30000 },
+                keep: { type: 'tool_uses', value: 3 },
+                clear_at_least: { type: 'input_tokens', value: 5000 },
+                exclude_tools: ['web_search']
+              }]
+            },
             tools: [
               {
                 type: 'web_search_20250305',
