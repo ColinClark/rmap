@@ -47,6 +47,135 @@ interface CohortRequest {
   query: string;
 }
 
+// Generate actionable error messages with specific guidance
+function generateActionableError(toolName: string, error: Error, toolInput?: any): any {
+  const errorMessage = error.message.toLowerCase();
+
+  // SQL-specific errors
+  if (toolName === 'sql') {
+    // Wrong table name error
+    if (errorMessage.includes('synthiedb') || errorMessage.includes('table') && errorMessage.includes('not found')) {
+      return {
+        error: error.message,
+        type: 'TABLE_NAME_ERROR',
+        suggestion: `The table name should be 'synthie' (not 'synthiedb' or other variations).
+
+Try this instead:
+- ❌ Wrong: SELECT COUNT(*) FROM synthiedb WHERE ...
+- ✅ Correct: SELECT COUNT(*) FROM synthie WHERE ...
+
+The database is called 'synthiedb', but the TABLE inside it is called 'synthie'.`,
+        correctExample: 'SELECT COUNT(*) FROM synthie WHERE age BETWEEN 25 AND 34'
+      };
+    }
+
+    // Syntax errors
+    if (errorMessage.includes('syntax') || errorMessage.includes('parse')) {
+      return {
+        error: error.message,
+        type: 'SQL_SYNTAX_ERROR',
+        suggestion: `Your SQL query has a syntax error.
+
+Common fixes:
+1. Check column names exist (use catalog tool first)
+2. Ensure proper DuckDB syntax
+3. Use single quotes for strings: WHERE state_label = 'Berlin'
+4. Check for missing parentheses or commas
+
+Example valid query:
+SELECT COUNT(*) as total,
+       gender,
+       AVG(income) as avg_income
+FROM synthie
+WHERE age BETWEEN 25 AND 34
+  AND state_label = 'Berlin'
+GROUP BY gender`,
+        correctExample: "SELECT COUNT(*) FROM synthie WHERE age > 25 AND income > 50000"
+      };
+    }
+
+    // Column not found
+    if (errorMessage.includes('column') || errorMessage.includes('field')) {
+      return {
+        error: error.message,
+        type: 'COLUMN_NOT_FOUND',
+        suggestion: `The column name in your query doesn't exist in the database.
+
+Steps to fix:
+1. Call the 'catalog' tool to see all available columns
+2. Check the exact spelling and case of column names
+3. Common columns include: age, gender, income, state_label, education_level, household_size
+
+Available demographic columns:
+- age, gender, state_label, income, education_level, occupation
+- household_size, household_children
+- bundesland, city_size_category, urban_rural_flag
+
+Available psychographic columns:
+- innovation_score, shopping_preference, brand_affinity, lifestyle_segment`,
+        nextAction: 'Call the catalog tool to see all available columns and their sample values'
+      };
+    }
+
+    // Timeout or performance issues
+    if (errorMessage.includes('timeout') || errorMessage.includes('too long')) {
+      return {
+        error: error.message,
+        type: 'QUERY_TIMEOUT',
+        suggestion: `Your query took too long to execute (>60 seconds).
+
+Performance tips:
+1. Add LIMIT clause for large result sets: LIMIT 1000
+2. Use WHERE filters before GROUP BY to reduce rows
+3. Start with COUNT(*) to estimate result size
+4. Avoid SELECT * without filters (83M rows!)
+
+Example optimized query:
+-- Instead of this (slow):
+-- SELECT * FROM synthie WHERE age > 25
+
+-- Do this (fast):
+SELECT COUNT(*) FROM synthie WHERE age BETWEEN 25 AND 34 LIMIT 100`,
+        correctExample: 'SELECT COUNT(*) FROM synthie WHERE age > 25 LIMIT 1000'
+      };
+    }
+  }
+
+  // Catalog tool errors
+  if (toolName === 'catalog') {
+    if (errorMessage.includes('database') || errorMessage.includes('connection')) {
+      return {
+        error: error.message,
+        type: 'DATABASE_CONNECTION_ERROR',
+        suggestion: `Could not connect to the SynthiePop database.
+
+This is usually a temporary issue. Please:
+1. Try again in a moment
+2. If the problem persists, the MCP server may be down
+3. Check that the SynthiePop MCP server is running on localhost:8002`,
+        nextAction: 'Retry the catalog request, or notify the user if the problem persists'
+      };
+    }
+  }
+
+  // Generic error with helpful context
+  return {
+    error: error.message,
+    type: 'TOOL_EXECUTION_ERROR',
+    suggestion: `Something went wrong while executing the '${toolName}' tool.
+
+What you can try:
+1. Check the tool input parameters are correct
+2. For SQL queries: verify syntax and table name ('synthie')
+3. For catalog: retry the request
+4. Simplify the query and try again
+
+If you need to see what data is available, call the 'catalog' tool first.`,
+    toolName,
+    input: toolInput
+  };
+}
+
 // Execute tool calls
 async function executeToolCall(toolName: string, toolInput: any, tenantId: string): Promise<string> {
   try {
@@ -78,7 +207,12 @@ async function executeToolCall(toolName: string, toolInput: any, tenantId: strin
     throw new Error(`Unknown tool: ${toolName}`);
   } catch (error) {
     logger.error('Tool execution failed', { toolName, error });
-    return JSON.stringify({ error: error instanceof Error ? error.message : 'Tool execution failed' });
+    const actionableError = generateActionableError(
+      toolName,
+      error instanceof Error ? error : new Error('Tool execution failed'),
+      toolInput
+    );
+    return JSON.stringify(actionableError);
   }
 }
 
@@ -124,7 +258,13 @@ cohort.post('/chat', async (c) => {
             model: cohortConfig.llm.model,
             max_tokens: cohortConfig.llm.maxTokens,
             temperature: cohortConfig.llm.temperature,
-            system: cohortConfig.llm.systemPrompt,
+            system: [
+              {
+                type: 'text',
+                text: cohortConfig.llm.systemPrompt,
+                cache_control: { type: 'ephemeral' }
+              }
+            ],
             messages: conversationMessages,
             tools: [
               {
