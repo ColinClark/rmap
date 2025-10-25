@@ -120,10 +120,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           id: response.user.id,
           email: response.user.email,
           name: response.user.name,
-          role: response.user.role,
-          tenantId: response.user.tenantId,
-          tenantRole: response.user.tenantRole,
-          permissions: response.user.permissions || [],
+          role: response.tenant?.role,
+          tenantId: response.tenant?.id,
+          tenantRole: response.tenant?.role,
+          permissions: response.tenant?.permissions || [],
         });
 
         // Start token expiry checking interval
@@ -156,10 +156,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           id: response.user.id,
           email: response.user.email,
           name: response.user.name,
-          role: response.user.role,
-          tenantId: response.user.tenantId,
-          tenantRole: response.user.tenantRole,
-          permissions: response.user.permissions || [],
+          role: response.tenant?.role,
+          tenantId: response.tenant?.id,
+          tenantRole: response.tenant?.role,
+          permissions: response.tenant?.permissions || [],
         });
 
         // Start token expiry checking interval
