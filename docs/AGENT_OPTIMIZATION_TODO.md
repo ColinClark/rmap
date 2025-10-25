@@ -68,9 +68,18 @@
   - Now properly streams text deltas to client in real-time
   - Handles content_block_delta events for progressive text streaming
   - Waits for finalMessage() to collect all blocks including tool uses
+- [x] **Fix:** Added completion guidance to system prompt
+  - Defines when agent should consider analysis "complete"
+  - Lists required deliverables (target audience, cohort size, recommendations, next steps)
+  - Instructs agent to present final comprehensive report
+  - Tells agent to only stop using tools when ready to provide complete analysis
+- [x] **Fix:** Improved stopping logic to preserve final responses
+  - Previously discarded final text-only response when no tools used
+  - Now adds final assistant response to conversationMessages before stopping
+  - Better logging to track completion behavior
 - **Status:** ✅ COMPLETE
 - **Test Results:** All tests passed. Web search tool works correctly for concept bridging. Multi-tool handling fixed. Complex queries like "Find premium shoppers in Berlin" now properly use web search → catalog → SQL workflow.
-- **Commit Hashes:** 51441f6 (initial), 636eca2 (maxTokens correction), 3bdcc0b (streaming implementation)
+- **Commit Hashes:** 51441f6 (initial), 636eca2 (maxTokens correction), 3bdcc0b (streaming), 90d6575 (completion guidance)
 
 ### Step 1.3: Enhance Catalog Tool Description
 - [x] **Task:** Update `server/src/routes/cohort.ts` lines 120-153
