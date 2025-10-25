@@ -292,7 +292,24 @@ Response format:
 - Lead with cohort size and % of population
 - Provide key demographic/psychographic traits
 - Show the SQL query used
-- Offer strategic recommendations`
+- Offer strategic recommendations
+
+IMPORTANT - When to finish:
+You should continue exploring and refining the analysis until you have:
+1. Identified the target audience with specific demographic/psychographic filters
+2. Provided cohort size estimates with SQL queries
+3. Delivered comprehensive marketing recommendations
+4. Suggested concrete next steps or audience segments to explore
+
+When you've completed all analysis and provided strategic recommendations,
+present your final comprehensive report with clear sections for:
+- Target Audience Overview
+- Key Demographics & Psychographics
+- Cohort Size & Market Opportunity
+- Marketing Strategy Recommendations
+- Next Steps
+
+Only stop using tools when you have enough data to provide this complete analysis.`
         },
         mcp: {
           catalogTool: 'synthiepop_catalog',

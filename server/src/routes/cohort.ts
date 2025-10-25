@@ -503,31 +503,36 @@ User asks: "Show me young professionals"
               role: 'user',
               content: toolResults
             });
-          }
 
-          // Reset for next iteration
-          assistantContent = [];
-          toolResults = [];
-          
-          // If no tool was used, we're done
-          if (!hasToolUse) {
-            logger.info('No tool use detected, ending conversation', { 
+            logger.info('Tool was used, continuing conversation', {
               iteration: iterations,
-              hadContent: assistantContent.length > 0
+              messageCount: conversationMessages.length
             });
+          } else {
+            // No tools used - this is the final response
+            logger.info('No tool use detected, ending conversation', {
+              iteration: iterations,
+              textBlockCount: assistantContent.filter(b => b.type === 'text').length,
+              hasContent: assistantContent.length > 0
+            });
+
+            // IMPORTANT: Add the final text response to conversation history
             if (assistantContent.length > 0) {
               conversationMessages.push({
                 role: 'assistant',
                 content: assistantContent
               });
+              logger.info('Added final assistant response to conversation', {
+                contentBlocks: assistantContent.length
+              });
             }
+
             continueConversation = false;
-          } else {
-            logger.info('Tool was used, continuing conversation', { 
-              iteration: iterations,
-              messageCount: conversationMessages.length 
-            });
           }
+
+          // Reset for next iteration
+          assistantContent = [];
+          toolResults = [];
         }
         
         await stream.writeSSE({ 
