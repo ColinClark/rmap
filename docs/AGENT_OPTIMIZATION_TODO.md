@@ -174,6 +174,29 @@
 - **Test Results:** Prompt caching enabled. System prompt cached across conversation turns.
 - **Commit Hash:** 5c3a919
 
+### Step 1.7: Fix Apps Not Selectable After Login
+- [x] **Task:** Backend - Include user permissions in login/register responses
+  - Updated `server/src/routes/auth.ts` login endpoint (lines 77-114)
+  - Updated `server/src/routes/auth.ts` register endpoint (lines 138-175)
+  - Added: Query userService.getTenantUsers() after successful auth
+  - Added: Find current user and extract permissions + tenantRole
+  - Now returns: role, permissions array in tenant response object
+- [x] **Task:** Frontend - Extract permissions from tenant object on login
+  - Updated `apps/web/src/contexts/AuthContext.tsx` login function (lines 119-127)
+  - Updated `apps/web/src/contexts/AuthContext.tsx` register function (lines 155-163)
+  - Changed from: response.user.permissions (didn't exist)
+  - Changed to: response.tenant?.permissions (now populated by backend)
+- [x] **Task:** Add event-based coordination between AuthContext and TenantContext
+  - AuthContext dispatches 'auth:login' event after successful login
+  - TenantContext listens for event and reloads tenant data
+- [x] **Test:** Login and verify apps are immediately selectable (no refresh)
+- [x] **Test:** Register and verify apps are immediately selectable
+- [x] **Commit:** "fix: Extract user permissions from tenant object in login/register"
+- [x] **Commit:** "fix: Include user permissions and role in login/register responses"
+- **Status:** ✅ COMPLETE
+- **Test Results:** Apps now selectable immediately after login without browser refresh
+- **Commit Hashes:** 7a1b946 (event coordination), 95e631e (frontend extraction), 4b37de3 (backend inclusion)
+
 ---
 
 ## Phase 2: Memory & Context Management (Week 2)
