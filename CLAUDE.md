@@ -29,7 +29,7 @@ npm run dev:web        # or npm run dev:admin
 **Key Technologies:**
 - Frontend: React 18 + TypeScript + Vite + Tailwind CSS + Radix UI
 - Backend: Hono + MongoDB Atlas + JWT auth
-- AI/Data: Anthropic Claude + MCP (SynthiePop 83M records)
+- AI/Data: Anthropic Claude Sonnet 4.5 (@anthropic-ai/sdk v0.67.0) + MCP (SynthiePop 83M records, Statista market data)
 - Architecture: Turborepo monorepo with workspace packages
 
 ## Key Principles
@@ -204,9 +204,56 @@ Located at `server/src/services/mcp/`:
   - Tools: catalog, sql, search
   - Used for demographic data queries and audience segmentation (AudienceRefinement workflow step)
 
+- **Statista MCP** (`statista.ts`) - Market data and statistics
+  - API endpoint: https://api.statista.ai/v1
+  - Tools: search-statistics, get-chart-data-by-id
+  - Requires STATISTA_API_KEY environment variable
+  - Used for market research and data validation in BrandProductSelection step
+
 Configuration loaded from `server/src/services/config/ConfigLoader.ts`
 
 **Important:** If SynthiePop MCP server is not running, audience refinement features will fail. The server is a separate process and not part of this monorepo.
+
+#### AI Agent Features
+Located at `server/src/services/`:
+
+**Cohort Builder Agent** (`cohort.ts` route)
+- **Model:** Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
+- **SDK:** @anthropic-ai/sdk v0.67.0
+- **Max Tokens:** 32,768 (model supports 64K output, 200K input)
+- **Max Iterations:** 50 tool-use turns
+- **Streaming:** Server-Sent Events (SSE) for real-time responses
+
+**Agent Tools:**
+1. **Web Search** (web_search_20250305) - Anthropic's built-in web search
+   - Used for concept bridging ("premium shoppers" → income/education demographics)
+   - Gathers market statistics and trends
+   - Max 5 uses per conversation
+
+2. **SynthiePop Database Tools** (via MCP)
+   - `catalog` - Database schema exploration
+   - `sql` - Execute DuckDB queries on 83M population records
+
+3. **Memory Tool** (memory_20250818) - Persistent learning across conversations
+   - Anthropic SDK beta feature using `betaMemoryTool`
+   - File-based storage at `server/memory/{tenantId}/`
+   - Tenant-isolated with path traversal protection
+   - Limits: 1MB per file, 10MB total per tenant
+   - Commands: view, create, str_replace, insert, delete, rename
+   - Implementation: `server/src/services/memory/MemoryService.ts`
+
+**Context Management:**
+- **Beta Feature:** context-management-2025-06-27
+- **Auto-cleanup:** Removes old tool uses when context grows too large
+- **Trigger:** 30,000 input tokens
+- **Retention:** Keeps last 10 tool uses
+- **Exclusions:** Preserves web_search results for longer context
+- **Configuration:** `server/config.yaml` contextManagement section
+
+**Prompt Caching:**
+- System prompt cached across conversation turns
+- ~50% cost savings on system prompt tokens
+- Ephemeral cache type for automatic management
 
 #### Email Service
 - **EmailService** - Handles all email operations
@@ -574,3 +621,4 @@ const campaigns = await db.collection('campaigns').find({ tenantId });
 - **[Architecture](./docs/ARCHITECTURE.md)** - Technical deep-dive
 - **[Deployment](./docs/DEPLOYMENT.md)** - Deployment guide
 - **[Developer Setup](./docs/DEVELOPER_SETUP.md)** - Development setup
+- remember to consult https://github.com/anthropics/anthropic-sdk-typescript for claude anthropic api help
