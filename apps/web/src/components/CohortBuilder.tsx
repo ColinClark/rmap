@@ -35,6 +35,7 @@ import {
 import { cn } from '../lib/utils';
 import type { CampaignData } from '../workflows/RetailMediaWorkflow';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface CohortBuilderProps {
   data: CampaignData;
@@ -616,7 +617,7 @@ AND tech_affinity > 0.8`,
                                         prose-strong:text-muted-foreground prose-strong:italic
                                         prose-code:text-muted-foreground prose-code:bg-muted/50 prose-code:px-1 prose-code:rounded prose-code:text-xs
                                         prose-pre:bg-muted/50 prose-pre:text-muted-foreground prose-pre:p-2 prose-pre:text-xs">
-                              <ReactMarkdown>{message.content}</ReactMarkdown>
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
                             </div>
                           </div>
                         </div>
@@ -652,7 +653,7 @@ AND tech_affinity > 0.8`,
                                         prose-th:border prose-th:border-border prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:font-semibold
                                         prose-td:border prose-td:border-border prose-td:px-3 prose-td:py-2
                                         prose-hr:border-border prose-hr:my-4">
-                              <ReactMarkdown>{message.content}</ReactMarkdown>
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
                             </div>
                             
                             {message.data?.cohortSize && (
@@ -726,7 +727,7 @@ AND tech_affinity > 0.8`,
                                prose-blockquote:border-l-2 prose-blockquote:border-l-muted-foreground prose-blockquote:pl-3 prose-blockquote:text-muted-foreground
                                prose-table:border-collapse prose-th:border prose-th:border-border prose-td:border prose-td:border-border`
                           )}>
-                            <ReactMarkdown>{message.content}</ReactMarkdown>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
                           </div>
                           
                           {message.data?.cohortSize && (
