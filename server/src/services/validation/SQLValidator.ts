@@ -32,8 +32,8 @@ export interface ValidationWarning {
 export class SQLValidator {
   private config = ConfigLoader.getConfig();
   private dangerousKeywords: string[];
-  private validTables = ['synthie']; // Only allowed table
-  private readonly TOTAL_POPULATION = 83000000; // SynthiePop total records
+  // Table validation removed - MCP server handles table existence
+  private readonly TOTAL_POPULATION = 83000000; // SynthiePop total records (estimate)
   private readonly MAX_RECOMMENDED_ROWS = 10000000; // 10M rows warning threshold
 
   constructor() {
@@ -115,7 +115,7 @@ export class SQLValidator {
         errors.push({
           type: 'DANGEROUS_KEYWORD',
           message: `Dangerous keyword detected: ${keyword.toUpperCase()}`,
-          suggestion: `This operation is not allowed. Use SELECT queries only to retrieve data from the synthie table.`,
+          suggestion: `This operation is not allowed. Use SELECT queries only to retrieve data from the database.`,
           position
         });
       }
@@ -146,27 +146,8 @@ export class SQLValidator {
       }
     }
 
-    // Check if any referenced table is not in the allowed list
-    for (const table of foundTables) {
-      if (!this.validTables.includes(table)) {
-        errors.push({
-          type: 'INVALID_TABLE',
-          message: `Invalid table name: ${table}`,
-          suggestion: `Only the 'synthie' table is available. Use: SELECT ... FROM synthie WHERE ...`,
-          position: originalSQL.toLowerCase().indexOf(table)
-        });
-      }
-    }
-
-    // Special case: Check for common mistake of using database name
-    if (normalizedSQL.includes('synthiedb')) {
-      errors.push({
-        type: 'INVALID_TABLE',
-        message: `Invalid table reference: synthiedb`,
-        suggestion: `Use the table name 'synthie', not the database name 'synthiedb'. Correct: SELECT ... FROM synthie`,
-        position: originalSQL.toLowerCase().indexOf('synthiedb')
-      });
-    }
+    // Table validation disabled - let MCP server handle table existence checks
+    // The catalog tool will discover available tables dynamically
 
     return errors;
   }
