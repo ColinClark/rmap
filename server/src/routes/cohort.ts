@@ -630,9 +630,17 @@ User asks: "Show me young professionals"
 
           // Check for tool use and execute tools
           for (const block of finalMessage.content) {
-            if (block.type === 'tool_use' && 'name' in block && 'input' in block && 'id' in block) {
+            // Handle both regular tool_use (custom tools) and server_tool_use (web_search)
+            const isToolUse = block.type === 'tool_use';
+            const isServerToolUse = block.type === 'server_tool_use';
+
+            if ((isToolUse || isServerToolUse) && 'name' in block && 'input' in block && 'id' in block) {
               hasToolUse = true;
-              logger.info('Tool use detected', { toolName: block.name });
+              logger.info('Tool use detected', {
+                toolName: block.name,
+                toolType: block.type,
+                isServerSide: isServerToolUse
+              });
 
               // Send tool_use event to client for UI display
               await stream.writeSSE({
@@ -640,14 +648,17 @@ User asks: "Show me young professionals"
                   type: 'tool_use',
                   tool: block.name,
                   toolId: block.id,
-                  input: block.input
+                  input: block.input,
+                  isServerTool: isServerToolUse
                 })
               });
 
-              // Web search is a server-side tool handled by Anthropic
-              // Don't execute it locally - just let the UI show it's being used
-              if (block.name === 'web_search') {
-                logger.info('Web search is server-side tool - skipping local execution');
+              // Server-side tools (web_search) are handled by Anthropic
+              // Don't execute them locally - just let the UI show they're being used
+              if (isServerToolUse || block.name === 'web_search') {
+                logger.info('Server-side tool detected - skipping local execution', {
+                  toolName: block.name
+                });
                 // Don't add to toolResults - Anthropic handles this automatically
                 continue;
               }
