@@ -52,6 +52,7 @@ interface ChatMessage {
   phase?: 'exploring' | 'analyzing' | 'finalizing';
   toolName?: string;
   toolResult?: any;
+  isToolUse?: boolean; // True when showing tool is being called, false/undefined when showing result
   toolResults?: Array<{
     tool: string;
     resultSummary: string;
@@ -211,12 +212,15 @@ AND tech_affinity > 0.8`,
                   setMessages(prev => {
                     const newMessages = [...prev];
                     const lastMessage = newMessages[newMessages.length - 1];
-                    
+
                     // Check if we should append to last assistant message or create new one
                     // Create new message if: no currentMessageId, or last message is not assistant, or IDs don't match
                     if (currentMessageId && lastMessage && lastMessage.type === 'assistant' && lastMessage.id === currentMessageId) {
                       // Append to existing message
-                      lastMessage.content += parsed.content;
+                      // Limit trailing newlines to max 1 during streaming to prevent visual breaks
+                      // This prevents "## Heading\n\n\n\n" from showing large gaps before next content arrives
+                      const combinedContent = lastMessage.content + parsed.content;
+                      lastMessage.content = combinedContent.replace(/\n{2,}$/, '\n');
                       // Update metadata - latest values override
                       if (parsed.isExploration !== undefined) {
                         lastMessage.isExploration = parsed.isExploration;
@@ -243,21 +247,59 @@ AND tech_affinity > 0.8`,
                     }
                     return newMessages;
                   });
-                } else if (parsed.type === 'tool_result') {
-                  // Reset currentMessageId so next content creates a new message
-                  currentMessageId = null;
-                  
-                  // Add tool result as a separate message inline
-                  const toolMessage: ChatMessage = {
-                    id: `tool-${Date.now()}-${Math.random()}`,
+                } else if (parsed.type === 'tool_use') {
+                  // Show when a tool is being called
+                  const toolLabels: Record<string, string> = {
+                    'web_search': '🔍 Searching the web',
+                    'catalog': '📊 Checking database schema',
+                    'sql': '💾 Querying database',
+                    'memory': '🧠 Accessing memory'
+                  };
+
+                  const toolUseMessage: ChatMessage = {
+                    id: `tool-use-${parsed.toolId}`,
                     type: 'tool',
-                    content: parsed.resultSummary || `Tool: ${parsed.tool}`,
+                    content: toolLabels[parsed.tool] || `Using ${parsed.tool}...`,
                     timestamp: new Date(),
                     toolName: parsed.tool,
-                    toolResult: parsed.result
+                    isToolUse: true
                   };
-                  
-                  setMessages(prev => [...prev, toolMessage]);
+
+                  setMessages(prev => [...prev, toolUseMessage]);
+                } else if (parsed.type === 'tool_result') {
+                  // Don't reset currentMessageId - let content continue appending to the same message
+                  // This prevents splitting the final response into multiple messages
+
+                  // Update the tool_use message with the result
+                  setMessages(prev => {
+                    // Find the corresponding tool_use message and update it
+                    const updated = [...prev];
+                    const toolUseIndex = updated.findIndex(m =>
+                      m.type === 'tool' && m.toolName === parsed.tool && m.isToolUse
+                    );
+
+                    if (toolUseIndex !== -1) {
+                      // Update the existing tool_use message with the result
+                      updated[toolUseIndex] = {
+                        ...updated[toolUseIndex],
+                        content: parsed.resultSummary || `Tool: ${parsed.tool}`,
+                        toolResult: parsed.result,
+                        isToolUse: false
+                      };
+                      return updated;
+                    } else {
+                      // If no tool_use message found, add a new tool result message
+                      const toolMessage: ChatMessage = {
+                        id: `tool-${Date.now()}-${Math.random()}`,
+                        type: 'tool',
+                        content: parsed.resultSummary || `Tool: ${parsed.tool}`,
+                        timestamp: new Date(),
+                        toolName: parsed.tool,
+                        toolResult: parsed.result
+                      };
+                      return [...prev, toolMessage];
+                    }
+                  });
                   
                   // Handle cohort data if present
                   if (parsed.result && parsed.result.data) {
@@ -274,6 +316,13 @@ AND tech_affinity > 0.8`,
                       });
                     }
                   }
+                } else if (parsed.type === 'final_response') {
+                  // Analysis complete - just log metadata, don't reset currentMessageId
+                  // Keep currentMessageId so subsequent content_delta events append to the same message
+                  console.log('Analysis complete:', {
+                    iteration: parsed.iteration,
+                    textBlocks: parsed.textBlockCount
+                  });
                 } else if (parsed.type === 'error') {
                   throw new Error(parsed.error);
                 } else if (parsed.type === 'end') {
@@ -567,7 +616,7 @@ AND tech_affinity > 0.8`,
                         </div>
                       );
                     }
-                    
+
                     // Final results - prominently displayed
                     if (message.isFinalResult) {
                       return (

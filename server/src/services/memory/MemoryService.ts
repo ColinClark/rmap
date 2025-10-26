@@ -135,7 +135,7 @@ export class MemoryService implements MemoryToolHandlers {
     const memoryPath = command.path || '/';
     const fullPath = await this.validatePath(memoryPath);
 
-    logger.info('Memory view command', { tenantId: this.tenantId, path: memoryPath });
+    logger.info('Memory view command', { tenantId: this.tenantId, requestedPath: memoryPath, actualPath: fullPath });
 
     try {
       const stats = await fs.stat(fullPath);
@@ -178,7 +178,7 @@ export class MemoryService implements MemoryToolHandlers {
     const { path: memoryPath, file_text: fileText } = command;
     const fullPath = await this.validatePath(memoryPath);
 
-    logger.info('Memory create command', { tenantId: this.tenantId, path: memoryPath });
+    logger.info('Memory create command', { tenantId: this.tenantId, requestedPath: memoryPath, actualPath: fullPath });
 
     // Check file size
     if (Buffer.byteLength(fileText, 'utf-8') > MAX_FILE_SIZE) {
@@ -186,7 +186,7 @@ export class MemoryService implements MemoryToolHandlers {
     }
 
     // Check total tenant memory size
-    const currentSize = await this.getTenantMemorySize(tenantId);
+    const currentSize = await this.getTenantMemorySize();
     if (currentSize + Buffer.byteLength(fileText, 'utf-8') > MAX_TOTAL_SIZE) {
       throw new Error(`Tenant memory limit exceeded. Maximum total size is ${MAX_TOTAL_SIZE} bytes`);
     }
@@ -209,7 +209,7 @@ export class MemoryService implements MemoryToolHandlers {
     const { path: memoryPath, old_str: oldStr, new_str: newStr } = command;
     const fullPath = await this.validatePath(memoryPath);
 
-    logger.info('Memory str_replace command', { tenantId: this.tenantId, path: memoryPath });
+    logger.info('Memory str_replace command', { tenantId: this.tenantId, requestedPath: memoryPath, actualPath: fullPath });
 
     // Read current content
     const content = await fs.readFile(fullPath, 'utf-8');

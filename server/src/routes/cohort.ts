@@ -422,10 +422,9 @@ cohort.post('/chat', async (c) => {
         }));
         conversationMessages.push({ role: 'user', content: query });
 
-        // NOTE: Memory service temporarily disabled - memory tool type not supported by API yet
-        // const memoryService = await MemoryService.init(tenant.id);
-        // const memory = betaMemoryTool(memoryService);
-        const memoryService = await MemoryService.init(tenant.id); // Still initialize for tool execution
+        // Initialize memory service and tool
+        const memoryService = await MemoryService.init(tenant.id);
+        const memory = betaMemoryTool(memoryService);
 
         let continueConversation = true;
         let iterations = 0;
@@ -439,8 +438,8 @@ cohort.post('/chat', async (c) => {
             model: cohortConfig.llm.model
           });
 
-          // Create streaming message
-          const anthropicStream = anthropicClient.messages.stream({
+          // Create streaming message using beta API for context_management support
+          const anthropicStream = anthropicClient.beta.messages.stream({
             model: cohortConfig.llm.model,
             max_tokens: cohortConfig.llm.maxTokens,
             temperature: cohortConfig.llm.temperature,
@@ -571,9 +570,8 @@ User asks: "Show me young professionals"
                   },
                   required: ['sql']
                 }
-              }
-              // NOTE: Memory tool temporarily disabled - type 'memory_20250818' not supported by API yet
-              // memory
+              },
+              memory
             ],
             betas: ['context-management-2025-06-27']
           });
@@ -643,6 +641,16 @@ User asks: "Show me young professionals"
               hasToolUse = true;
               logger.info('Tool use detected', { toolName: block.name });
 
+              // Send tool_use event to client BEFORE executing
+              await stream.writeSSE({
+                data: JSON.stringify({
+                  type: 'tool_use',
+                  tool: block.name,
+                  toolId: block.id,
+                  input: block.input
+                })
+              });
+
               // Execute tool
               const toolResult = await executeToolCall(
                 block.name,
@@ -653,17 +661,27 @@ User asks: "Show me young professionals"
               );
 
               // Send tool result to client with metadata
-              const parsedResult = JSON.parse(toolResult);
+              // Memory tool returns plain text, other tools return JSON
+              let parsedResult: any;
               let resultSummary = '';
 
-              if (block.name === 'sql') {
-                resultSummary = `Executed SQL query (${parsedResult.data?.length || 0} rows)`;
-              } else if (block.name === 'catalog') {
-                resultSummary = 'Retrieved database schema';
-              } else if (block.name === 'web_search') {
-                resultSummary = 'Web search completed';
+              if (block.name === 'memory') {
+                // Memory tool returns plain text, not JSON
+                parsedResult = toolResult;
+                resultSummary = 'Memory operation completed';
               } else {
-                resultSummary = `Retrieved ${block.name} data`;
+                // Other tools return JSON
+                parsedResult = JSON.parse(toolResult);
+
+                if (block.name === 'sql') {
+                  resultSummary = `Executed SQL query (${parsedResult.data?.length || 0} rows)`;
+                } else if (block.name === 'catalog') {
+                  resultSummary = 'Retrieved database schema';
+                } else if (block.name === 'web_search') {
+                  resultSummary = 'Web search completed';
+                } else {
+                  resultSummary = `Retrieved ${block.name} data`;
+                }
               }
 
               await stream.writeSSE({

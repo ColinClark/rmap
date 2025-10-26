@@ -51,13 +51,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const [tokenCheckInterval, setTokenCheckInterval] = useState<NodeJS.Timeout | null>(null);
 
-  // Function to check token expiry
+  // Function to check token expiry (disabled in development)
   const checkTokenExpiry = () => {
-    const token = localStorage.getItem('accessToken');
-    if (token && isTokenExpired(token)) {
-      console.log('Token expired, logging out...');
-      logout('token-expired');
-    }
+    // Disabled for development - no auto-logout
+    // const token = localStorage.getItem('accessToken');
+    // if (token && isTokenExpired(token)) {
+    //   console.log('Token expired, logging out...');
+    //   logout('token-expired');
+    // }
   };
 
   useEffect(() => {
@@ -65,13 +66,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const checkAuth = async () => {
       const token = localStorage.getItem('accessToken');
       if (token) {
-        // Check if token is expired before making API call
-        if (isTokenExpired(token)) {
-          console.log('Stored token is expired');
-          logout('token-expired');
-          setLoading(false);
-          return;
-        }
+        // Disabled token expiry check for development - no auto-logout
+        // if (isTokenExpired(token)) {
+        //   console.log('Stored token is expired');
+        //   logout('token-expired');
+        //   setLoading(false);
+        //   return;
+        // }
 
         try {
           // Validate token with backend
