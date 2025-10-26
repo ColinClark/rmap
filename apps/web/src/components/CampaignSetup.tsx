@@ -46,34 +46,9 @@ export function CampaignSetup({ data, onUpdate, onNext }: CampaignSetupProps) {
       <div>
         <h2>Campaign Setup</h2>
         <p className="text-muted-foreground mt-2">
-          Configure your campaign to leverage <strong>SynthiePop</strong> synthetic population data for precision targeting and opportunity detection.
+          Configure your campaign budget, timeline, and targeting parameters.
         </p>
       </div>
-
-      {/* Data Integration Value Proposition */}
-      <Card className="border-green-200 bg-green-50/50">
-        <CardContent className="p-6">
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-600 rounded-full"></div>
-              <h3 className="text-lg font-medium text-green-900">SynthiePop Data</h3>
-            </div>
-            <p className="text-sm text-green-800">
-              Leverage Germany's most comprehensive synthetic population dataset with 83M+ individuals for precise audience modeling and spend optimization.
-            </p>
-            <ul className="text-xs text-green-700 space-y-1">
-              <li>• Individual-level demographic profiles</li>
-              <li>• Geographic distribution down to municipality</li>
-              <li>• Household composition & occupation data</li>
-            </ul>
-          </div>
-          <div className="mt-4 p-3 bg-green-100 rounded-lg">
-            <p className="text-sm text-gray-800">
-              <strong>Precision Targeting:</strong> Use SynthiePop's population-level data to identify under-served segments, optimize budget allocation, and predict campaign performance with unprecedented accuracy.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Campaign Details - Full Width Card */}
@@ -105,7 +80,7 @@ export function CampaignSetup({ data, onUpdate, onNext }: CampaignSetupProps) {
                       <span className="font-medium text-blue-800">Germany-wide Campaign</span>
                     </div>
                     <div className="text-sm text-blue-700">
-                      Starting with 83M+ population from SynthiePop. Geographic targeting will be configured in the Cohort Builder step.
+                      Geographic targeting will be configured in the Cohort Builder step.
                     </div>
                   </div>
                 </div>
@@ -130,7 +105,7 @@ export function CampaignSetup({ data, onUpdate, onNext }: CampaignSetupProps) {
                     </div>
                   )}
                   <p className="text-sm text-muted-foreground mt-2">
-                    Category enables Statista market intelligence matching and SynthiePop population filtering
+                    Category is used for audience segmentation and targeting
                   </p>
                 </div>
               </div>
