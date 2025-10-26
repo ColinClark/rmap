@@ -205,40 +205,29 @@ logging:
       colorize: true
     file:
       enabled: true
-      level: info
+      level: debug  # Capture all log levels (debug, info, warn, error) in one file
       directory: ./logs
-      filename: application-%DATE%.log
+      filename: server-%DATE%.log  # Single consolidated log file
       datePattern: YYYY-MM-DD
-      maxSize: 20m
+      maxSize: 50m  # Increased size since all logs go here
       maxFiles: 14d
       format: json
     errors:
-      enabled: true
-      level: error
-      directory: ./logs
-      filename: error-%DATE%.log
-      datePattern: YYYY-MM-DD
-      maxSize: 20m
-      maxFiles: 30d
-      format: json
+      enabled: false  # Disabled - errors now go to main log file
+  # Context-specific settings (all contexts log to same file but with context labels)
   contexts:
     mcp:
       level: debug
-      filename: mcp-%DATE%.log
-      maxFiles: 7d
+      includeSQL: false
+      includeTenant: true
     api:
       level: info
-      filename: api-%DATE%.log
-      maxFiles: 14d
+      includeTenant: true
     query:
       level: debug
-      filename: query-%DATE%.log
-      maxFiles: 7d
       includeSQL: true
       includeTenant: true
       includeResults: false
     auth:
       level: info
-      filename: auth-%DATE%.log
-      maxFiles: 30d
       includeSensitive: false
