@@ -9,6 +9,8 @@ import configLoader from '../services/config/ConfigLoader';
 import { QueryExecutor } from '../services/mcp/QueryExecutor';
 import { MemoryService } from '../services/memory/MemoryService';
 import sqlValidator from '../services/validation/SQLValidator';
+import cohortEvaluator from '../services/evaluation/CohortEvaluator';
+import type { CohortData, CohortRequirements } from '../services/evaluation/CohortEvaluator';
 
 const logger = new Logger('cohort');
 const config = configLoader.loadConfig();
@@ -48,6 +50,46 @@ interface CohortMessage {
 interface CohortRequest {
   messages: CohortMessage[];
   query: string;
+}
+
+// Extract cohort requirements from conversation context
+function extractCohortRequirements(conversationMessages: any[]): CohortRequirements {
+  const requirements: CohortRequirements = {};
+
+  // Look at recent user messages for clues about requirements
+  const recentMessages = conversationMessages.slice(-5).filter(m => m.role === 'user');
+  const combinedText = recentMessages.map(m => {
+    if (typeof m.content === 'string') return m.content;
+    if (Array.isArray(m.content)) {
+      return m.content
+        .filter(block => block.type === 'text')
+        .map(block => block.text)
+        .join(' ');
+    }
+    return '';
+  }).join(' ').toLowerCase();
+
+  // Try to extract target size from phrases like "500,000 people", "1 million users"
+  const sizeMatches = combinedText.match(/(\d+(?:,\d{3})*(?:\.\d+)?)\s*(?:million|m|thousand|k)?\s*(?:people|users|individuals|persons)/i);
+  if (sizeMatches) {
+    let size = parseFloat(sizeMatches[1].replace(/,/g, ''));
+    if (combinedText.includes('million') || combinedText.includes(' m ')) {
+      size *= 1000000;
+    } else if (combinedText.includes('thousand') || combinedText.includes(' k ')) {
+      size *= 1000;
+    }
+    requirements.targetSize = Math.round(size);
+  }
+
+  // Store original description
+  if (recentMessages.length > 0) {
+    const lastUserMessage = recentMessages[recentMessages.length - 1];
+    if (typeof lastUserMessage.content === 'string') {
+      requirements.description = lastUserMessage.content;
+    }
+  }
+
+  return requirements;
 }
 
 // Generate actionable error messages with specific guidance
@@ -184,7 +226,8 @@ async function executeToolCall(
   toolName: string,
   toolInput: any,
   tenantId: string,
-  memoryService?: MemoryService
+  memoryService?: MemoryService,
+  conversationMessages?: any[]
 ): Promise<string> {
   try {
     logger.info('Executing tool', { toolName, tenantId, hasInput: !!toolInput });
@@ -270,6 +313,76 @@ async function executeToolCall(
         sqlQuery,  // MCP server expects 'sql' parameter
         cohortConfig.mcp.database || 'synthiedb'
       );
+
+      // Evaluate cohort quality if this is a COUNT query
+      if (conversationMessages && (sqlQuery.toLowerCase().includes('count(*)') || sqlQuery.toLowerCase().includes('count ('))) {
+        try {
+          // Extract cohort size from result
+          let cohortSize = 0;
+          if (result.data && Array.isArray(result.data) && result.data.length > 0) {
+            // Try to find count in result - could be 'count', 'COUNT(*)', 'total', etc.
+            const firstRow = result.data[0];
+            const countKey = Object.keys(firstRow).find(k =>
+              k.toLowerCase().includes('count') || k.toLowerCase() === 'total'
+            );
+            if (countKey) {
+              cohortSize = parseInt(firstRow[countKey]) || 0;
+            }
+          }
+
+          if (cohortSize > 0) {
+            // Extract requirements from conversation
+            const requirements = extractCohortRequirements(conversationMessages);
+
+            // Build cohort data
+            const cohortData: CohortData = {
+              size: cohortSize,
+              sql: sqlQuery
+              // Note: breakdown data would require additional GROUP BY queries
+            };
+
+            // Evaluate cohort quality
+            const evaluation = cohortEvaluator.evaluate(cohortData, requirements);
+
+            logger.info('Cohort evaluation complete', {
+              cohortSize,
+              qualityScore: evaluation.qualityScore,
+              passed: evaluation.passed,
+              hasRequirements: !!requirements.targetSize
+            });
+
+            // Return result with evaluation feedback
+            return JSON.stringify({
+              ...result,
+              evaluation: {
+                qualityScore: evaluation.qualityScore,
+                passed: evaluation.passed,
+                summary: evaluation.summary,
+                issues: evaluation.issues,
+                suggestions: evaluation.suggestions,
+                dimensions: {
+                  sizeMatch: {
+                    score: evaluation.dimensions.sizeMatch.score,
+                    details: evaluation.dimensions.sizeMatch.details
+                  },
+                  diversity: {
+                    score: evaluation.dimensions.diversity.score,
+                    details: evaluation.dimensions.diversity.details
+                  },
+                  requirementFit: {
+                    score: evaluation.dimensions.requirementFit.score,
+                    details: evaluation.dimensions.requirementFit.details
+                  }
+                }
+              }
+            });
+          }
+        } catch (evalError) {
+          // Don't fail the query if evaluation fails
+          logger.warn('Cohort evaluation failed', { error: evalError });
+        }
+      }
+
       return JSON.stringify(result);
     }
     throw new Error(`Unknown tool: ${toolName}`);
@@ -533,7 +646,8 @@ User asks: "Show me young professionals"
                 block.name,
                 block.input,
                 tenant.id,
-                memoryService
+                memoryService,
+                conversationMessages
               );
 
               // Send tool result to client with metadata
