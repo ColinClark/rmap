@@ -405,18 +405,7 @@ export function AudienceRefinement({ data, onUpdate, onPrev }: AudienceRefinemen
     <div className="max-w-7xl mx-auto space-y-6">
       <div>
         <h2>Audience Refinement</h2>
-        <p className="text-muted-foreground mt-2">
-          Combine <strong>SynthiePop's individual-level data</strong> with <strong>Statista's market intelligence</strong> to identify high-value segments, detect spending opportunities, and optimize campaign efficiency through AI-powered analysis.
-        </p>
       </div>
-
-      {/* Market Intelligence Integration Alert */}
-      <Alert className="border-emerald-200 bg-gradient-to-r from-emerald-50 to-blue-50">
-        <TrendingUp className="h-4 w-4 text-emerald-600" />
-        <AlertDescription className="text-gray-800">
-          <strong>Smart Opportunity Detection:</strong> As you refine your SynthiePop audience, our AI continuously cross-references with Statista's {data.category || 'category'} penetration rates to surface underserved segments where your competition is weak but population density is high – perfect for budget reallocation.
-        </AlertDescription>
-      </Alert>
 
       {/* Population Overview with Market Intelligence */}
       <Card className="bg-blue-50/50 border-blue-200">
