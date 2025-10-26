@@ -8,6 +8,7 @@ import { tenantMiddleware } from '../middleware/tenant';
 import configLoader from '../services/config/ConfigLoader';
 import { QueryExecutor } from '../services/mcp/QueryExecutor';
 import { MemoryService } from '../services/memory/MemoryService';
+import sqlValidator from '../services/validation/SQLValidator';
 
 const logger = new Logger('cohort');
 const config = configLoader.loadConfig();
@@ -231,9 +232,42 @@ async function executeToolCall(
       const schema = await executor.getSchema(cohortConfig.mcp.database || 'synthiedb');
       return JSON.stringify(schema);
     } else if (toolName === 'sql') {
+      const sqlQuery = toolInput.sql || toolInput.query;
+
+      // Validate SQL before execution
+      const validationResult = sqlValidator.validate(sqlQuery);
+
+      if (!validationResult.valid) {
+        // Return validation errors to agent for self-correction
+        const errorMessage = sqlValidator.formatValidationMessage(validationResult);
+        logger.warn('SQL validation failed', {
+          sql: sqlQuery,
+          errors: validationResult.errors,
+          warnings: validationResult.warnings
+        });
+
+        // Return structured error that agent can understand
+        return JSON.stringify({
+          error: 'SQL validation failed',
+          validation_errors: validationResult.errors,
+          validation_warnings: validationResult.warnings,
+          formatted_message: errorMessage,
+          original_query: sqlQuery
+        });
+      }
+
+      // Log warnings (non-blocking)
+      if (validationResult.warnings.length > 0) {
+        logger.info('SQL validation warnings', {
+          sql: sqlQuery,
+          warnings: validationResult.warnings
+        });
+      }
+
+      // Execute validated SQL
       const executor = QueryExecutor.forTenant(tenantId);
       const result = await executor.executeSQL(
-        toolInput.sql || toolInput.query,  // MCP server expects 'sql' parameter
+        sqlQuery,  // MCP server expects 'sql' parameter
         cohortConfig.mcp.database || 'synthiedb'
       );
       return JSON.stringify(result);
