@@ -24,7 +24,7 @@ export function CampaignSetup({ data, onUpdate, onNext }: CampaignSetupProps) {
     if (data.name && (data.selectedProduct?.category || data.category)) {
       onUpdate({
         category: data.selectedProduct?.category || data.category,
-        region: 'Germany' // Set to Germany-wide
+        region: 'United States' // Set to US-wide
       });
       onNext();
     }
@@ -77,7 +77,7 @@ export function CampaignSetup({ data, onUpdate, onNext }: CampaignSetupProps) {
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="flex items-center space-x-2 mb-2">
                       <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                      <span className="font-medium text-blue-800">Germany-wide Campaign</span>
+                      <span className="font-medium text-blue-800">US-wide Campaign</span>
                     </div>
                     <div className="text-sm text-blue-700">
                       Geographic targeting will be configured in the Cohort Builder step.
