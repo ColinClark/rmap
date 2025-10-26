@@ -23,15 +23,18 @@ export interface ValidationError {
 }
 
 export interface ValidationWarning {
-  type: 'MISSING_LIMIT' | 'BROAD_QUERY' | 'PERFORMANCE';
+  type: 'MISSING_LIMIT' | 'BROAD_QUERY' | 'PERFORMANCE' | 'SIZE_WARNING';
   message: string;
   suggestion: string;
+  estimatedRows?: number;
 }
 
 export class SQLValidator {
   private config = ConfigLoader.getConfig();
   private dangerousKeywords: string[];
   private validTables = ['synthie']; // Only allowed table
+  private readonly TOTAL_POPULATION = 83000000; // SynthiePop total records
+  private readonly MAX_RECOMMENDED_ROWS = 10000000; // 10M rows warning threshold
 
   constructor() {
     this.dangerousKeywords = this.config.query.dangerousKeywords.map(k => k.toLowerCase());
@@ -84,6 +87,10 @@ export class SQLValidator {
     // Performance warnings (non-blocking)
     const warnings = this.checkPerformanceWarnings(normalizedSQL);
     result.warnings.push(...warnings);
+
+    // Size estimation (non-blocking)
+    const sizeWarnings = this.estimateQuerySize(normalizedSQL);
+    result.warnings.push(...sizeWarnings);
 
     logger.info('SQL validation result', {
       validationPassed: result.valid,
@@ -258,6 +265,119 @@ export class SQLValidator {
     }
 
     return warnings;
+  }
+
+  /**
+   * Estimate query result size based on WHERE clause analysis
+   */
+  private estimateQuerySize(normalizedSQL: string): ValidationWarning[] {
+    const warnings: ValidationWarning[] = [];
+
+    // Skip COUNT queries - they don't return large result sets
+    if (normalizedSQL.includes('count(*)') || normalizedSQL.includes('count (')) {
+      return warnings;
+    }
+
+    // Check if there's a LIMIT clause
+    const limitMatch = normalizedSQL.match(/\blimit\s+(\d+)/i);
+    if (limitMatch) {
+      const limit = parseInt(limitMatch[1]);
+      // LIMIT is present and reasonable
+      if (limit <= this.MAX_RECOMMENDED_ROWS) {
+        return warnings;
+      }
+    }
+
+    // Estimate selectivity based on WHERE clause
+    const estimatedRows = this.estimateSelectivity(normalizedSQL);
+
+    if (estimatedRows > this.MAX_RECOMMENDED_ROWS) {
+      warnings.push({
+        type: 'SIZE_WARNING',
+        message: `Query may return too many rows (estimated: ${this.formatNumber(estimatedRows)} rows)`,
+        suggestion: `Add more specific filters in WHERE clause or add LIMIT to reduce result size. Recommended: < ${this.formatNumber(this.MAX_RECOMMENDED_ROWS)} rows`,
+        estimatedRows
+      });
+    } else if (estimatedRows > 1000000 && !limitMatch) {
+      // Warn for large results without LIMIT even if below max
+      warnings.push({
+        type: 'SIZE_WARNING',
+        message: `Query estimated to return ${this.formatNumber(estimatedRows)} rows without LIMIT`,
+        suggestion: 'Consider adding a LIMIT clause for better performance',
+        estimatedRows
+      });
+    }
+
+    return warnings;
+  }
+
+  /**
+   * Estimate query selectivity (what fraction of rows will be returned)
+   */
+  private estimateSelectivity(normalizedSQL: string): number {
+    // Check for WHERE clause
+    const whereMatch = normalizedSQL.match(/\bwhere\s+(.+?)(?:\bgroup by\b|\border by\b|\blimit\b|$)/i);
+
+    if (!whereMatch) {
+      // No WHERE clause = returns all rows
+      return this.TOTAL_POPULATION;
+    }
+
+    const whereClause = whereMatch[1];
+    let selectivity = 1.0; // Start assuming all rows match
+
+    // Equality filters (highly selective)
+    // e.g., city = 'Berlin', gender = 'M', age = 25
+    const equalityCount = (whereClause.match(/\w+\s*=\s*['"][^'"]+['"]/g) || []).length;
+    selectivity *= Math.pow(0.01, equalityCount); // Each equality reduces to ~1%
+
+    // Range filters (moderately selective)
+    // e.g., age > 25, income BETWEEN 50000 AND 75000
+    const rangeCount = (whereClause.match(/\b(>|<|>=|<=|between)\b/gi) || []).length;
+    selectivity *= Math.pow(0.3, rangeCount); // Each range reduces to ~30%
+
+    // IN clauses (variable selectivity)
+    const inMatches = whereClause.match(/\bin\s*\([^)]+\)/gi) || [];
+    inMatches.forEach(inClause => {
+      const valueCount = (inClause.match(/,/g) || []).length + 1;
+      // Estimate based on number of values in IN clause
+      selectivity *= Math.min(valueCount * 0.05, 0.5); // Max 50% for IN clauses
+    });
+
+    // LIKE filters (low selectivity unless specific)
+    const likeCount = (whereClause.match(/\blike\b/gi) || []).length;
+    selectivity *= Math.pow(0.5, likeCount); // Each LIKE reduces to ~50%
+
+    // AND compounds (more selective)
+    const andCount = (whereClause.match(/\band\b/gi) || []).length;
+    // AND already factored in by counting individual conditions
+
+    // OR dilutes (less selective)
+    const orCount = (whereClause.match(/\bor\b/gi) || []).length;
+    if (orCount > 0) {
+      selectivity *= (1 + orCount * 0.5); // Each OR adds ~50% more rows
+    }
+
+    // Ensure selectivity is within bounds [0, 1]
+    selectivity = Math.max(0.0001, Math.min(1.0, selectivity));
+
+    const estimatedRows = Math.round(this.TOTAL_POPULATION * selectivity);
+
+    logger.debug('Size estimation', {
+      whereClause: whereClause.substring(0, 100),
+      selectivity,
+      estimatedRows,
+      filters: { equalityCount, rangeCount, inCount: inMatches.length, likeCount, andCount, orCount }
+    });
+
+    return estimatedRows;
+  }
+
+  /**
+   * Format large numbers with commas
+   */
+  private formatNumber(num: number): string {
+    return num.toLocaleString('en-US');
   }
 
   /**
