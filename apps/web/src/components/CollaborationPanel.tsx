@@ -49,11 +49,10 @@ interface Comment {
 interface CollaborationPanelProps {
   data: CampaignData;
   onUpdate: (updates: Partial<CampaignData>) => void;
-  onNext: () => void;
   onPrev: () => void;
 }
 
-export function CollaborationPanel({ data, onUpdate, onNext, onPrev }: CollaborationPanelProps) {
+export function CollaborationPanel({ data, onUpdate, onPrev }: CollaborationPanelProps) {
   const [newComment, setNewComment] = useState('');
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newMemberRole, setNewMemberRole] = useState<'viewer' | 'editor' | 'admin'>('editor');
@@ -621,11 +620,6 @@ ${data.name},${data.directCohorts.population} people,${data.budget},${data.fligh
                       </div>
                     ))}
                   </div>
-
-                  <Button onClick={onNext} className="w-full" size="lg">
-                    <BarChart3 className="h-5 w-5 mr-2" />
-                    View Performance Dashboard
-                  </Button>
                 </div>
               )}
             </CardContent>
@@ -712,14 +706,10 @@ ${data.name},${data.directCohorts.population} people,${data.budget},${data.fligh
         </TabsContent>
       </Tabs>
 
-      <div className="flex justify-between pt-4">
+      <div className="flex justify-start pt-4">
         <Button variant="outline" onClick={onPrev}>
           <ChevronLeft className="mr-2 h-4 w-4" />
           Previous
-        </Button>
-        <Button onClick={onNext} disabled={data.activation.status === 'draft'}>
-          Performance Monitoring
-          <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>

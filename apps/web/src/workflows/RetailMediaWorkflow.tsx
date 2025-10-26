@@ -5,7 +5,6 @@ import { CohortBuilder } from '../components/CohortBuilder';
 import { AudienceRefinement } from '../components/AudienceRefinement';
 import { StrategyGenerator } from '../components/StrategyGenerator';
 import { ComparativeDashboard } from '../components/ComparativeDashboard';
-import { PerformanceMonitoring } from '../components/PerformanceMonitoring';
 import { CollaborationPanel } from '../components/CollaborationPanel';
 import { Progress } from '../components/ui/progress';
 import { Users, Package, Building2, Database } from 'lucide-react';
@@ -378,8 +377,7 @@ const steps = [
   'Audience Refinement',
   'Strategy Generator',
   'Comparative Dashboard',
-  'Campaign Export & Activation',
-  'Performance Monitoring'
+  'Campaign Export & Activation'
 ];
 
 export function RetailMediaWorkflow() {
@@ -493,18 +491,12 @@ export function RetailMediaWorkflow() {
         return <ComparativeDashboard data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
       case 6:
         console.log('Rendering CollaborationPanel (Campaign Export)');
-        return <CollaborationPanel data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
-      case 7:
-        console.log('Rendering PerformanceMonitoring');
-        return <PerformanceMonitoring data={campaignData} onUpdate={updateCampaignData} onPrev={prevStep} />;
+        return <CollaborationPanel data={campaignData} onUpdate={updateCampaignData} onPrev={prevStep} />;
       default:
         console.log('No component for step:', currentStep);
         return null;
     }
   };
-
-  // Determine if Performance Monitoring should be accessible
-  const isPerformanceMonitoringAvailable = campaignData.activation.status !== 'draft';
 
   const getHeaderInfo = () => {
     const info = [];
@@ -568,21 +560,16 @@ export function RetailMediaWorkflow() {
                 <div key={step} className="flex items-center space-x-2">
                   <button
                     onClick={() => goToStep(index)}
-                    disabled={index === 7 && !isPerformanceMonitoringAvailable}
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-sm transition-colors ${
-                      index <= currentStep 
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
-                        : index === 7 && !isPerformanceMonitoringAvailable
-                        ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
+                      index <= currentStep
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                         : 'bg-muted text-muted-foreground hover:bg-muted/80'
                     }`}
                   >
                     {index + 1}
                   </button>
                   <span className={`text-sm ${
-                    index <= currentStep ? 'text-foreground' : 
-                    index === 7 && !isPerformanceMonitoringAvailable ? 'text-muted-foreground opacity-50' :
-                    'text-muted-foreground'
+                    index <= currentStep ? 'text-foreground' : 'text-muted-foreground'
                   }`}>
                     {step}
                   </span>
