@@ -38,7 +38,8 @@ async function apiCall(endpoint: string, options: RequestInit = {}, useAuthBase 
   }
   
   // Handle 401 Unauthorized - attempt to refresh token
-  if (response.status === 401 && !useAuthBase) {
+  // Skip auto-refresh only for the /refresh endpoint itself to avoid infinite loops
+  if (response.status === 401 && endpoint !== '/refresh') {
     const refreshToken = localStorage.getItem('refreshToken');
     if (refreshToken) {
       try {
@@ -69,11 +70,18 @@ async function apiCall(endpoint: string, options: RequestInit = {}, useAuthBase 
         return retryResponse.json();
       } catch (refreshError) {
         // Refresh failed, redirect to login
+        console.error('Token refresh failed:', refreshError);
         localStorage.clear();
         sessionStorage.clear();
         window.location.href = '/login';
         throw new Error('Session expired. Please login again.');
       }
+    } else {
+      // No refresh token available, clear and redirect to login
+      console.log('No refresh token available for 401 response');
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/login';
     }
   }
 
