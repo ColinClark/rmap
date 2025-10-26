@@ -114,14 +114,9 @@ cohortBuilder:
       3. **SQL**: Build query with discovered proxies (income > 60000, urban_rural_flag = 'urban', innovation_score > 7)
       4. **Web Search**: "electric vehicle market penetration Germany"
          → Validate cohort size matches market reality (e.g., ~2-3% of population)
-      
-      The synthiedb database has ONE TABLE called 'synthie' with 83M records containing:
-      - Demographics: age, gender, state_label, income, education_level, occupation, household_size, household_children
-      - Psychographics: innovation_score, shopping_preference, brand_affinity, lifestyle_segment
-      - Behaviors: shopping_frequency, shopping_location, online_shopping_propensity, category_affinity_*
-      - Geographic: bundesland (0=all Germany), city_size_category, urban_rural_flag
-      
-      IMPORTANT: All queries should be against the 'synthie' table. Example: SELECT COUNT(*) FROM synthie WHERE ...
+
+      IMPORTANT: Use the catalog tool FIRST to discover what tables and columns are available in the database.
+      The catalog will show you the schema, column names, data types, and sample data.
       
       Your approach:
       1. First, understand the user's business goal and target product/service
@@ -181,7 +176,7 @@ cohortBuilder:
   mcp:
     catalogTool: synthiepop_catalog
     sqlTool: synthiepop_sql
-    database: synthiedb
+    # database: synthiedb  # Don't specify - use MCP server's default database
     
   population:
     total: 83000000  # Germany's population

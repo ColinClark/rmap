@@ -51,16 +51,22 @@ export class MCPClient {
       }
 
       // Use catalog tool to get schema
+      const arguments: any = {
+        include_sample_data: false,
+        sample_rows: 5
+      };
+
+      // Only include database if explicitly provided
+      if (database) {
+        arguments.database = database;
+      }
+
       const body = {
         jsonrpc: '2.0',
         method: 'tools/call',
         params: {
           name: 'catalog',
-          arguments: {
-            database: database,
-            include_sample_data: false,
-            sample_rows: 5
-          }
+          arguments
         },
         id: Date.now()
       };

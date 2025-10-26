@@ -98,19 +98,13 @@ function generateActionableError(toolName: string, error: Error, toolInput?: any
 
   // SQL-specific errors
   if (toolName === 'sql') {
-    // Wrong table name error
-    if (errorMessage.includes('synthiedb') || errorMessage.includes('table') && errorMessage.includes('not found')) {
+    // Table not found error
+    if (errorMessage.includes('table') && errorMessage.includes('not found')) {
       return {
         error: error.message,
         type: 'TABLE_NAME_ERROR',
-        suggestion: `The table name should be 'synthie' (not 'synthiedb' or other variations).
-
-Try this instead:
-- ❌ Wrong: SELECT COUNT(*) FROM synthiedb WHERE ...
-- ✅ Correct: SELECT COUNT(*) FROM synthie WHERE ...
-
-The database is called 'synthiedb', but the TABLE inside it is called 'synthie'.`,
-        correctExample: 'SELECT COUNT(*) FROM synthie WHERE age BETWEEN 25 AND 34'
+        suggestion: `The table name in your query doesn't exist. Use the catalog tool to see available tables and their schemas.`,
+        correctExample: 'Use catalog tool first to discover available tables'
       };
     }
 
@@ -265,7 +259,8 @@ async function executeToolCall(
     // SynthiePop database tools
     if (toolName === 'catalog') {
       const executor = QueryExecutor.forTenant(tenantId);
-      const schema = await executor.getSchema(cohortConfig.mcp.database || 'synthiedb');
+      // Don't pass database parameter - let MCP server use its default
+      const schema = await executor.getSchema();
       return JSON.stringify(schema);
     } else if (toolName === 'sql') {
       const sqlQuery = toolInput.sql || toolInput.query;
@@ -302,10 +297,8 @@ async function executeToolCall(
 
       // Execute validated SQL
       const executor = QueryExecutor.forTenant(tenantId);
-      const result = await executor.executeSQL(
-        sqlQuery,  // MCP server expects 'sql' parameter
-        cohortConfig.mcp.database || 'synthiedb'
-      );
+      // Don't pass database parameter - let MCP server use its default
+      const result = await executor.executeSQL(sqlQuery);
 
       // Evaluate cohort quality if this is a COUNT query
       if (conversationMessages && (sqlQuery.toLowerCase().includes('count(*)') || sqlQuery.toLowerCase().includes('count ('))) {
