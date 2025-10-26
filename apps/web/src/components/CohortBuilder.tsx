@@ -926,30 +926,6 @@ AND tech_affinity > 0.8`,
               </CardContent>
             </Card>
           )}
-          
-          {/* Data Sources */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center">
-                <Database className="h-4 w-4 mr-2" />
-                Data Sources
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex items-center space-x-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span>SynthiePop Germany (83M)</span>
-              </div>
-              <div className="flex items-center space-x-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span>Statista Consumer Insights</span>
-              </div>
-              <div className="flex items-center space-x-2 text-sm">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <span>Market Insights 2024</span>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
 
