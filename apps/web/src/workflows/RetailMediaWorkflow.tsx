@@ -3,9 +3,6 @@ import { BrandProductSelection } from '../components/BrandProductSelection';
 import { CampaignSetup } from '../components/CampaignSetup';
 import { CohortBuilder } from '../components/CohortBuilder';
 import { AudienceRefinement } from '../components/AudienceRefinement';
-import { StrategyGenerator } from '../components/StrategyGenerator';
-import { ComparativeDashboard } from '../components/ComparativeDashboard';
-import { CollaborationPanel } from '../components/CollaborationPanel';
 import { Progress } from '../components/ui/progress';
 import { Users, Package, Building2, Database } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -374,10 +371,7 @@ const steps = [
   'Brand & Product Selection',
   'Campaign Setup',
   'Cohort Builder',
-  'Audience Refinement',
-  'Strategy Generator',
-  'Comparative Dashboard',
-  'Campaign Export & Activation'
+  'Audience Refinement'
 ];
 
 export function RetailMediaWorkflow() {
@@ -482,16 +476,7 @@ export function RetailMediaWorkflow() {
         return <CohortBuilder data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
       case 3:
         console.log('Rendering AudienceRefinement');
-        return <AudienceRefinement data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
-      case 4:
-        console.log('Rendering StrategyGenerator');
-        return <StrategyGenerator data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
-      case 5:
-        console.log('Rendering ComparativeDashboard');
-        return <ComparativeDashboard data={campaignData} onUpdate={updateCampaignData} onNext={nextStep} onPrev={prevStep} />;
-      case 6:
-        console.log('Rendering CollaborationPanel (Campaign Export)');
-        return <CollaborationPanel data={campaignData} onUpdate={updateCampaignData} onPrev={prevStep} />;
+        return <AudienceRefinement data={campaignData} onUpdate={updateCampaignData} onPrev={prevStep} />;
       default:
         console.log('No component for step:', currentStep);
         return null;

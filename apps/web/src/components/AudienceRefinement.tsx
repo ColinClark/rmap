@@ -14,8 +14,8 @@ import { Separator } from './ui/separator';
 import { 
   ChevronLeft, 
   ChevronRight, 
-  Database, 
-  MessageSquare, 
+  Database,
+  MessageSquare,
   BarChart3,
   Users,
   Filter,
@@ -29,15 +29,13 @@ import {
   AlertCircle,
   TrendingUp,
   PieChart,
-  MapPin,
-  Sparkles
+  MapPin
 } from 'lucide-react';
 import type { CampaignData, SynthiePopData, PopulationFilters } from '../types';
 
 interface AudienceRefinementProps {
   data: CampaignData;
   onUpdate: (updates: Partial<CampaignData>) => void;
-  onNext: () => void;
   onPrev: () => void;
 }
 
@@ -91,7 +89,7 @@ const bundeslandNames: Record<number, string> = {
   16: 'Thüringen'
 };
 
-export function AudienceRefinement({ data, onUpdate, onNext, onPrev }: AudienceRefinementProps) {
+export function AudienceRefinement({ data, onUpdate, onPrev }: AudienceRefinementProps) {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -402,29 +400,6 @@ export function AudienceRefinement({ data, onUpdate, onNext, onPrev }: AudienceR
   };
 
   const genderLabel = (gender: number) => gender === 1 ? 'Male' : 'Female';
-
-  const proceedToStrategyGeneration = async () => {
-    // Update the direct cohorts with refined population data
-    onUpdate({
-      directCohorts: {
-        ...data.directCohorts,
-        population: data.refinedPopulation.length
-      }
-    });
-    
-    // Advance to Strategy Generator step
-    onNext();
-    
-    // Small delay to allow the step transition, then trigger strategy generation
-    setTimeout(() => {
-      // This will trigger the strategy generation automatically in the Strategy Generator component
-      // We'll pass a flag to indicate auto-generation should start
-      onUpdate({
-        strategies: [], // Reset strategies to trigger auto-generation
-        shouldAutoGenerateStrategies: true
-      });
-    }, 100);
-  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -783,14 +758,10 @@ export function AudienceRefinement({ data, onUpdate, onNext, onPrev }: AudienceR
       </Tabs>
 
       {/* Navigation */}
-      <div className="flex justify-between pt-6">
+      <div className="flex justify-start pt-6">
         <Button variant="outline" onClick={onPrev}>
           <ChevronLeft className="mr-2 h-4 w-4" />
           Previous: Cohort Builder
-        </Button>
-        <Button onClick={proceedToStrategyGeneration} className="min-w-32">
-          <Sparkles className="mr-2 h-4 w-4" />
-          Generate Strategies
         </Button>
       </div>
     </div>
