@@ -62,16 +62,6 @@ const workflows: WorkflowCard[] = [
     permission: 'data',
     usage: { lastUsed: 'Just now', timesUsed: 12 },
     badge: 'New'
-  },
-  {
-    id: 'campaign-templates',
-    title: 'Campaign Templates',
-    description: 'Pre-built templates for common campaign types',
-    icon: Settings2,
-    color: 'bg-amber-500',
-    status: 'available',
-    permission: 'templates',
-    usage: { lastUsed: '1 week ago', timesUsed: 15 }
   }
 ];
 
@@ -143,7 +133,7 @@ export function Dashboard() {
       )}
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Campaigns</CardTitle>
@@ -160,24 +150,6 @@ export function Dashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{activeWorkflows}</div>
             <p className="text-xs text-muted-foreground">Available to you</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Performance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+23%</div>
-            <Progress value={73} className="mt-2" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Budget Used</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">$45.2K</div>
-            <p className="text-xs text-muted-foreground">of $60K monthly</p>
           </CardContent>
         </Card>
       </div>
