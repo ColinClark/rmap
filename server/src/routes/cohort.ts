@@ -633,6 +633,29 @@ User asks: "Show me young professionals"
             // Handle both regular tool_use (custom tools) and server_tool_use (web_search)
             const isToolUse = block.type === 'tool_use';
             const isServerToolUse = block.type === 'server_tool_use';
+            const isWebSearchResult = block.type === 'web_search_tool_result';
+
+            // Handle server tool results (web_search_tool_result)
+            if (isWebSearchResult && 'tool_use_id' in block && 'content' in block) {
+              logger.info('Web search result detected', {
+                toolUseId: block.tool_use_id,
+                resultCount: Array.isArray(block.content) ? block.content.length : 0
+              });
+
+              // Send tool result to client
+              await stream.writeSSE({
+                data: JSON.stringify({
+                  type: 'tool_result',
+                  tool: 'web_search',
+                  result: {
+                    results: block.content,
+                    count: Array.isArray(block.content) ? block.content.length : 0
+                  },
+                  resultSummary: `Found ${Array.isArray(block.content) ? block.content.length : 0} web search results`
+                })
+              });
+              continue;
+            }
 
             if ((isToolUse || isServerToolUse) && 'name' in block && 'input' in block && 'id' in block) {
               hasToolUse = true;
@@ -654,12 +677,12 @@ User asks: "Show me young professionals"
               });
 
               // Server-side tools (web_search) are handled by Anthropic
-              // Don't execute them locally - just let the UI show they're being used
+              // Don't execute them locally - results will come in web_search_tool_result blocks
               if (isServerToolUse || block.name === 'web_search') {
                 logger.info('Server-side tool detected - skipping local execution', {
                   toolName: block.name
                 });
-                // Don't add to toolResults - Anthropic handles this automatically
+                // Don't add to toolResults - results come in separate blocks
                 continue;
               }
 
