@@ -40,10 +40,9 @@ import {
   Info,
   Star,
   Edit,
-  Trash2,
-  Sparkles
+  Trash2
 } from 'lucide-react';
-import { CampaignData, Brand, Product, BrandAsset, StatistaStudyRequest, ProductFeature } from '../App';
+import { CampaignData, Brand, Product, BrandAsset, ProductFeature } from '../App';
 
 interface BrandProductSelectionProps {
   data: CampaignData;
@@ -63,20 +62,6 @@ const productCategories = [
   'Automotive Parts', 'Office Supplies', 'Pet Supplies', 'Other'
 ];
 
-const studyTypes = [
-  { value: 'consumer-insights', label: 'Consumer Insights', description: 'Deep dive into consumer behavior and preferences' },
-  { value: 'market-research', label: 'Market Research', description: 'Market size, trends, and competitive landscape' },
-  { value: 'brand-tracking', label: 'Brand Tracking', description: 'Brand awareness, perception, and health metrics' },
-  { value: 'usage-attitudes', label: 'Usage & Attitudes', description: 'How consumers use and perceive your category' }
-];
-
-const methodologies = [
-  { value: 'online-survey', label: 'Online Survey', description: 'Quantitative research via online questionnaire' },
-  { value: 'focus-groups', label: 'Focus Groups', description: 'Qualitative insights from moderated discussions' },
-  { value: 'interviews', label: 'In-Depth Interviews', description: 'One-on-one qualitative conversations' },
-  { value: 'mixed-methods', label: 'Mixed Methods', description: 'Combination of quantitative and qualitative approaches' }
-];
-
 export function BrandProductSelection({ data, onUpdate, onNext }: BrandProductSelectionProps) {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -84,7 +69,6 @@ export function BrandProductSelection({ data, onUpdate, onNext }: BrandProductSe
   const [activeTab, setActiveTab] = useState('brand-selection');
   const [showBrandDialog, setShowBrandDialog] = useState(false);
   const [showProductDialog, setShowProductDialog] = useState(false);
-  const [showStatistaDialog, setShowStatistaDialog] = useState(false);
   const [newBrand, setNewBrand] = useState<Partial<Brand>>({
     name: '',
     description: '',
@@ -100,27 +84,6 @@ export function BrandProductSelection({ data, onUpdate, onNext }: BrandProductSe
     features: [],
     targetDemographics: {},
     assets: []
-  });
-  const [newStudyRequest, setNewStudyRequest] = useState<Partial<StatistaStudyRequest>>({
-    studyType: 'consumer-insights',
-    methodology: 'online-survey',
-    targetDemographics: {
-      countries: ['Germany'],
-      ageRange: [18, 65],
-      sampleSize: 1000
-    },
-    researchQuestions: [],
-    timeline: {
-      requestDate: new Date(),
-      expectedDelivery: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-      urgencyLevel: 'standard'
-    },
-    budget: {
-      currency: 'EUR',
-      amount: 15000,
-      approved: false
-    },
-    status: 'draft'
   });
 
   // Load mock brands and products
@@ -389,52 +352,6 @@ export function BrandProductSelection({ data, onUpdate, onNext }: BrandProductSe
     });
   };
 
-  const handleCreateStatistaStudy = () => {
-    if (!data.selectedBrand || !newStudyRequest.studyType) return;
-
-    const studyRequest: StatistaStudyRequest = {
-      id: `study-${Date.now()}`,
-      brandId: data.selectedBrand.id,
-      productId: data.selectedProduct?.id,
-      studyType: newStudyRequest.studyType as any,
-      targetDemographics: newStudyRequest.targetDemographics as any,
-      researchQuestions: newStudyRequest.researchQuestions || [],
-      methodology: newStudyRequest.methodology as any,
-      timeline: newStudyRequest.timeline as any,
-      budget: newStudyRequest.budget as any,
-      status: 'draft',
-      contactInfo: newStudyRequest.contactInfo as any,
-      customRequirements: newStudyRequest.customRequirements
-    };
-
-    onUpdate({
-      statistaStudies: [...data.statistaStudies, studyRequest]
-    });
-
-    setShowStatistaDialog(false);
-    setNewStudyRequest({
-      studyType: 'consumer-insights',
-      methodology: 'online-survey',
-      targetDemographics: {
-        countries: ['Germany'],
-        ageRange: [18, 65],
-        sampleSize: 1000
-      },
-      researchQuestions: [],
-      timeline: {
-        requestDate: new Date(),
-        expectedDelivery: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        urgencyLevel: 'standard'
-      },
-      budget: {
-        currency: 'EUR',
-        amount: 15000,
-        approved: false
-      },
-      status: 'draft'
-    });
-  };
-
   const addBrandValue = (value: string) => {
     if (value.trim() && !newBrand.brandValues?.includes(value.trim())) {
       setNewBrand(prev => ({
@@ -458,15 +375,6 @@ export function BrandProductSelection({ data, onUpdate, onNext }: BrandProductSe
     }
   };
 
-  const addResearchQuestion = (question: string) => {
-    if (question.trim() && !newStudyRequest.researchQuestions?.includes(question.trim())) {
-      setNewStudyRequest(prev => ({
-        ...prev,
-        researchQuestions: [...(prev.researchQuestions || []), question.trim()]
-      }));
-    }
-  };
-
   const canProceed = data.selectedBrand && data.selectedProduct;
 
   const getAssetIcon = (type: string) => {
@@ -485,21 +393,15 @@ export function BrandProductSelection({ data, onUpdate, onNext }: BrandProductSe
       <div>
         <h2>Brand & Product Selection</h2>
         <p className="text-muted-foreground mt-2">
-          Select or create a brand and product for your retail-media campaign. Optionally commission Statista consumer insights research.
+          Select or create a brand and product for your retail-media campaign.
         </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="brand-selection">Brand Selection</TabsTrigger>
           <TabsTrigger value="product-selection" disabled={!data.selectedBrand}>
             Product Selection
-          </TabsTrigger>
-          <TabsTrigger value="statista-research" disabled={!data.selectedBrand}>
-            <span className="flex items-center space-x-1">
-              <span>Statista Research</span>
-              <Sparkles className="h-3 w-3 text-yellow-500 animate-pulse" />
-            </span>
           </TabsTrigger>
           <TabsTrigger value="project-materials">Project Materials</TabsTrigger>
         </TabsList>
@@ -1105,317 +1007,6 @@ export function BrandProductSelection({ data, onUpdate, onNext }: BrandProductSe
               </CardContent>
             </Card>
           )}
-        </TabsContent>
-
-        {/* Statista Research */}
-        <TabsContent value="statista-research" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center space-x-2">
-                  <BarChart3 className="h-5 w-5" />
-                  <span>Statista Consumer Insights</span>
-                </CardTitle>
-                <Dialog open={showStatistaDialog} onOpenChange={setShowStatistaDialog}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Request Study
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>Request Statista Consumer Insights Study</DialogTitle>
-                      <DialogDescription>
-                        Commission custom research for {data.selectedBrand?.name}
-                        {data.selectedProduct && ` - ${data.selectedProduct.name}`}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="study-type">Study Type*</Label>
-                          <Select
-                            value={newStudyRequest.studyType}
-                            onValueChange={(value) => setNewStudyRequest(prev => ({ ...prev, studyType: value as any }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {studyTypes.map(type => (
-                                <SelectItem key={type.value} value={type.value}>
-                                  <div>
-                                    <div>{type.label}</div>
-                                    <div className="text-xs text-muted-foreground">{type.description}</div>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="methodology">Methodology*</Label>
-                          <Select
-                            value={newStudyRequest.methodology}
-                            onValueChange={(value) => setNewStudyRequest(prev => ({ ...prev, methodology: value as any }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {methodologies.map(method => (
-                                <SelectItem key={method.value} value={method.value}>
-                                  <div>
-                                    <div>{method.label}</div>
-                                    <div className="text-xs text-muted-foreground">{method.description}</div>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <Label htmlFor="sample-size">Sample Size*</Label>
-                          <Input
-                            id="sample-size"
-                            type="number"
-                            value={newStudyRequest.targetDemographics?.sampleSize || 1000}
-                            onChange={(e) => setNewStudyRequest(prev => ({
-                              ...prev,
-                              targetDemographics: {
-                                ...prev.targetDemographics!,
-                                sampleSize: parseInt(e.target.value) || 1000
-                              }
-                            }))}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="age-min">Min Age</Label>
-                          <Input
-                            id="age-min"
-                            type="number"
-                            value={newStudyRequest.targetDemographics?.ageRange[0] || 18}
-                            onChange={(e) => setNewStudyRequest(prev => ({
-                              ...prev,
-                              targetDemographics: {
-                                ...prev.targetDemographics!,
-                                ageRange: [parseInt(e.target.value) || 18, prev.targetDemographics!.ageRange[1]]
-                              }
-                            }))}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="age-max">Max Age</Label>
-                          <Input
-                            id="age-max"
-                            type="number"
-                            value={newStudyRequest.targetDemographics?.ageRange[1] || 65}
-                            onChange={(e) => setNewStudyRequest(prev => ({
-                              ...prev,
-                              targetDemographics: {
-                                ...prev.targetDemographics!,
-                                ageRange: [prev.targetDemographics!.ageRange[0], parseInt(e.target.value) || 65]
-                              }
-                            }))}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="budget-amount">Budget (EUR)*</Label>
-                          <Input
-                            id="budget-amount"
-                            type="number"
-                            value={newStudyRequest.budget?.amount || 15000}
-                            onChange={(e) => setNewStudyRequest(prev => ({
-                              ...prev,
-                              budget: {
-                                currency: 'EUR',
-                                amount: parseInt(e.target.value) || 15000,
-                                approved: false
-                              }
-                            }))}
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="urgency">Urgency Level</Label>
-                          <Select
-                            value={newStudyRequest.timeline?.urgencyLevel}
-                            onValueChange={(value) => setNewStudyRequest(prev => ({
-                              ...prev,
-                              timeline: {
-                                ...prev.timeline!,
-                                urgencyLevel: value as any
-                              }
-                            }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="standard">Standard (4-6 weeks)</SelectItem>
-                              <SelectItem value="expedited">Expedited (2-3 weeks)</SelectItem>
-                              <SelectItem value="rush">Rush (1-2 weeks)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label>Research Questions</Label>
-                        <div className="space-y-2 mt-2 mb-2">
-                          {newStudyRequest.researchQuestions?.map((question, index) => (
-                            <div key={index} className="flex items-center justify-between p-2 border rounded">
-                              <span className="text-sm">{question}</span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setNewStudyRequest(prev => ({
-                                  ...prev,
-                                  researchQuestions: prev.researchQuestions?.filter((_, i) => i !== index)
-                                }))}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="flex space-x-2">
-                          <Input
-                            placeholder="Add research question"
-                            id="research-question"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                addResearchQuestion(e.currentTarget.value);
-                                e.currentTarget.value = '';
-                              }
-                            }}
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const input = document.getElementById('research-question') as HTMLInputElement;
-                              if (input) {
-                                addResearchQuestion(input.value);
-                                input.value = '';
-                              }
-                            }}
-                          >
-                            Add
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="custom-requirements">Custom Requirements</Label>
-                        <Textarea
-                          id="custom-requirements"
-                          value={newStudyRequest.customRequirements || ''}
-                          onChange={(e) => setNewStudyRequest(prev => ({ 
-                            ...prev, 
-                            customRequirements: e.target.value 
-                          }))}
-                          placeholder="Any specific requirements or special considerations"
-                          rows={3}
-                        />
-                      </div>
-
-                      <div className="flex justify-end space-x-2">
-                        <Button variant="outline" onClick={() => setShowStatistaDialog(false)}>
-                          Cancel
-                        </Button>
-                        <Button onClick={handleCreateStatistaStudy}>
-                          Request Study
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {data.statistaStudies.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No Statista studies requested yet.</p>
-                  <p className="text-sm mt-2">Commission custom consumer insights research to enhance your campaign targeting.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {data.statistaStudies.map((study) => (
-                    <Card key={study.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                              <h4 className="font-medium">
-                                {studyTypes.find(t => t.value === study.studyType)?.label}
-                              </h4>
-                              <Badge variant={
-                                study.status === 'completed' ? 'default' :
-                                study.status === 'in-progress' ? 'secondary' :
-                                study.status === 'submitted' ? 'outline' : 'secondary'
-                              }>
-                                {study.status}
-                              </Badge>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                              <div>
-                                <div className="text-muted-foreground">Sample Size</div>
-                                <div>{study.targetDemographics.sampleSize.toLocaleString()}</div>
-                              </div>
-                              <div>
-                                <div className="text-muted-foreground">Age Range</div>
-                                <div>{study.targetDemographics.ageRange[0]}-{study.targetDemographics.ageRange[1]}</div>
-                              </div>
-                              <div>
-                                <div className="text-muted-foreground">Budget</div>
-                                <div>€{study.budget.amount.toLocaleString()}</div>
-                              </div>
-                              <div>
-                                <div className="text-muted-foreground">Delivery</div>
-                                <div>{study.timeline.expectedDelivery.toLocaleDateString()}</div>
-                              </div>
-                            </div>
-                            
-                            {study.researchQuestions.length > 0 && (
-                              <div>
-                                <div className="text-sm text-muted-foreground mb-1">Research Questions</div>
-                                <div className="text-sm">
-                                  {study.researchQuestions.slice(0, 2).join(', ')}
-                                  {study.researchQuestions.length > 2 && ` +${study.researchQuestions.length - 2} more`}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          
-                          <div className="flex items-center space-x-2">
-                            {study.status === 'completed' && (
-                              <Button variant="outline" size="sm">
-                                <Download className="h-4 w-4 mr-2" />
-                                Download Report
-                              </Button>
-                            )}
-                            <Button variant="ghost" size="sm">
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </TabsContent>
 
         {/* Project Materials */}

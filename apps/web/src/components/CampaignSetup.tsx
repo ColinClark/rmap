@@ -46,46 +46,30 @@ export function CampaignSetup({ data, onUpdate, onNext }: CampaignSetupProps) {
       <div>
         <h2>Campaign Setup</h2>
         <p className="text-muted-foreground mt-2">
-          Configure your campaign to leverage the power of <strong>Statista Consumer Insights</strong> and <strong>SynthiePop</strong> synthetic population data for precision targeting and opportunity detection.
+          Configure your campaign to leverage <strong>SynthiePop</strong> synthetic population data for precision targeting and opportunity detection.
         </p>
       </div>
 
       {/* Data Integration Value Proposition */}
-      <Card className="border-blue-200 bg-blue-50/50">
+      <Card className="border-green-200 bg-green-50/50">
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-blue-600 rounded-full"></div>
-                <h3 className="text-lg font-medium text-blue-900">Statista Consumer Insights</h3>
-              </div>
-              <p className="text-sm text-blue-800">
-                Access real consumer behavior data, market trends, and purchasing patterns across your target demographics to inform strategic decisions.
-              </p>
-              <ul className="text-xs text-blue-700 space-y-1">
-                <li>• Purchase intent & brand affinity data</li>
-                <li>• Category penetration rates by region</li>
-                <li>• Consumer journey touchpoints</li>
-              </ul>
+          <div className="space-y-3">
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-green-600 rounded-full"></div>
+              <h3 className="text-lg font-medium text-green-900">SynthiePop Data</h3>
             </div>
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-600 rounded-full"></div>
-                <h3 className="text-lg font-medium text-green-900">SynthiePop Data</h3>
-              </div>
-              <p className="text-sm text-green-800">
-                Leverage Germany's most comprehensive synthetic population dataset with 83M+ individuals for precise audience modeling and spend optimization.
-              </p>
-              <ul className="text-xs text-green-700 space-y-1">
-                <li>• Individual-level demographic profiles</li>
-                <li>• Geographic distribution down to municipality</li>
-                <li>• Household composition & occupation data</li>
-              </ul>
-            </div>
+            <p className="text-sm text-green-800">
+              Leverage Germany's most comprehensive synthetic population dataset with 83M+ individuals for precise audience modeling and spend optimization.
+            </p>
+            <ul className="text-xs text-green-700 space-y-1">
+              <li>• Individual-level demographic profiles</li>
+              <li>• Geographic distribution down to municipality</li>
+              <li>• Household composition & occupation data</li>
+            </ul>
           </div>
-          <div className="mt-4 p-3 bg-gradient-to-r from-blue-100 to-green-100 rounded-lg">
+          <div className="mt-4 p-3 bg-green-100 rounded-lg">
             <p className="text-sm text-gray-800">
-              <strong>Combined Power:</strong> Match Statista's market intelligence with SynthiePop's population reality to identify under-served segments, optimize budget allocation, and predict campaign performance with unprecedented accuracy.
+              <strong>Precision Targeting:</strong> Use SynthiePop's population-level data to identify under-served segments, optimize budget allocation, and predict campaign performance with unprecedented accuracy.
             </p>
           </div>
         </CardContent>
