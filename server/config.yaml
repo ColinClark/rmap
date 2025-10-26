@@ -162,7 +162,22 @@ cohortBuilder:
       - Next Steps
 
       Only stop using tools when you have enough data to provide this complete analysis.
-  
+
+  # Context Management - Automatic cleanup of old tool uses
+  contextManagement:
+    enabled: true
+    trigger:
+      type: input_tokens
+      value: 30000  # Trigger cleanup when input tokens reach 30K
+    keep:
+      type: tool_uses
+      value: 10  # Keep last 10 tool uses
+    clearAtLeast:
+      type: input_tokens
+      value: 5000  # Clear at least 5K tokens
+    excludeTools:
+      - web_search  # Preserve web search results for longer context
+
   mcp:
     catalogTool: synthiepop_catalog
     sqlTool: synthiepop_sql

@@ -304,15 +304,24 @@ cohort.post('/chat', async (c) => {
               }
             ],
             messages: conversationMessages,
-            context_management: {
+            context_management: cohortConfig.contextManagement?.enabled ? {
               edits: [{
                 type: 'clear_tool_uses_20250919',
-                trigger: { type: 'input_tokens', value: 30000 },
-                keep: { type: 'tool_uses', value: 3 },
-                clear_at_least: { type: 'input_tokens', value: 5000 },
-                exclude_tools: ['web_search']
+                trigger: {
+                  type: cohortConfig.contextManagement.trigger.type,
+                  value: cohortConfig.contextManagement.trigger.value
+                },
+                keep: {
+                  type: cohortConfig.contextManagement.keep.type,
+                  value: cohortConfig.contextManagement.keep.value
+                },
+                clear_at_least: {
+                  type: cohortConfig.contextManagement.clearAtLeast.type,
+                  value: cohortConfig.contextManagement.clearAtLeast.value
+                },
+                exclude_tools: cohortConfig.contextManagement.excludeTools || []
               }]
-            },
+            } : undefined,
             tools: [
               {
                 type: 'web_search_20250305',

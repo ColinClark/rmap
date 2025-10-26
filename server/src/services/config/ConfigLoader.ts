@@ -70,6 +70,22 @@ interface ServerConfig {
       systemPrompt: string;
       maxIterations?: number;
     };
+    contextManagement?: {
+      enabled: boolean;
+      trigger: {
+        type: string;
+        value: number;
+      };
+      keep: {
+        type: string;
+        value: number;
+      };
+      clearAtLeast: {
+        type: string;
+        value: number;
+      };
+      excludeTools?: string[];
+    };
     mcp: {
       catalogTool: string;
       sqlTool: string;
