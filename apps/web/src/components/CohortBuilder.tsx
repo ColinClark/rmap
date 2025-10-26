@@ -526,9 +526,6 @@ AND tech_affinity > 0.8`,
     <div className="max-w-7xl mx-auto space-y-6">
       <div>
         <h2>AI-Powered Cohort Builder</h2>
-        <p className="text-muted-foreground mt-2">
-          Use AI to explore and build precise audience segments from Germany's 83M synthetic population database
-        </p>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
