@@ -41,6 +41,7 @@ import testMcpRoutes from './routes/test-mcp'
 import { cohort } from './routes/cohort'
 import { testEmailRoutes } from './routes/test-email'
 import { debugRoutes } from './routes/debug'
+import { testWebSearch } from './routes/test-web-search'
 
 // Import middleware
 import { tenantMiddleware, tenantRateLimitMiddleware } from './middleware/tenant'
@@ -99,6 +100,11 @@ app.route('/api/cohort', cohort)
 
 // Test MCP routes (no tenant required for testing)
 app.route('/test-mcp', testMcpRoutes)
+
+// Test web search routes (development only)
+if (process.env.NODE_ENV === 'development') {
+  app.route('/test-web-search', testWebSearch)
+}
 
 // Test email routes (development only)
 if (process.env.NODE_ENV === 'development') {
