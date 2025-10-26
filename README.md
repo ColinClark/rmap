@@ -219,6 +219,24 @@ Tenants can upgrade their subscription through:
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
+## 🆕 Recent Improvements (October 2025)
+
+### Logging & Debugging
+- **Consolidated Server Logs**: All logs unified in single daily file (`server/logs/server-%DATE%.log`)
+- **Test Endpoints**: Added `/test-web-search` for debugging web search tool integration
+- **Better Log Filtering**: Context labels (mcp, api, query, auth) for easy filtering
+
+### Cohort Builder Enhancements
+- **Web Search Integration**: Fixed web search tool display and result rendering
+- **Table Rendering**: Added GitHub Flavored Markdown support for clean data tables
+- **Improved UX**: Word wrapping prevents text clipping, better message formatting
+- **AI-Powered Audience Building**: Natural language queries with Claude and SynthiePop data
+
+### UI/UX Improvements
+- **Component Fixes**: All UI components properly support React refs
+- **Responsive Design**: Better text wrapping and layout handling
+- **Enhanced Markdown**: Tables, code blocks, and lists render beautifully
+
 ## 📝 License
 
 This project is proprietary software. All rights reserved.

@@ -192,7 +192,8 @@ apps/web/src/
 - **integrations.ts** - External API integrations
 - **query.ts** - Natural language data querying
 - **test-mcp.ts** - MCP integration testing
-- **test-email.ts** - Email service testing
+- **test-email.ts** - Email service testing (development only)
+- **test-web-search.ts** - Web search tool testing (development only)
 - **debug.ts** - Debug utilities
 
 #### MCP (Model Context Protocol) Integrations
@@ -423,8 +424,10 @@ describe('Campaign API', () => {
 ```
 
 ### Available Test Endpoints
-- `/test-mcp` - Test MCP integrations (SynthiePop)
+- `/test-mcp` - Test MCP integrations (SynthiePop, Statista)
 - `/test-email` - Test email service (development only)
+- `/test-web-search/stream` - Test web search tool streaming events (development only)
+- `/test-web-search/non-stream` - Test web search tool non-streaming (development only)
 - `/debug` - Debug utilities and diagnostics
 
 ## Debugging & Request Tracking
@@ -526,6 +529,29 @@ Password: Demo123
 - **SSE Streaming**: Real-time response streaming for chat interface
 - **Turbo Caching**: Build caching for faster development
 
+## Recent Improvements (October 2025)
+
+### Logging System Improvements
+- **Consolidated Server Logs**: All server logs now go to a single `logs/server-%DATE%.log` file instead of 6 separate files
+- Simplified debugging and log searching with unified JSON logs
+- Context labels preserved for filtering (mcp, api, query, auth)
+- Configuration in `server/config.yaml`
+
+### Cohort Builder Enhancements
+- **Web Search Tool Display**: Fixed web search tool detection to properly show `server_tool_use` blocks (web_search)
+- **Web Search Results**: Search results now display properly when expanding web search tool blocks
+- **Table Rendering**: Added remark-gfm plugin for proper markdown table rendering
+- **Word Wrap**: Added word wrapping to all message types to prevent text clipping
+- **Improved UX**: Tables, lists, and long text now render cleanly in chat interface
+
+### UI Component Fixes
+- **Textarea Component**: Fixed ref forwarding with `React.forwardRef()` to eliminate console warnings
+- All UI components now properly support React refs
+
+### Testing Endpoints
+- **Test Web Search** (`/test-web-search/stream`): Debug endpoint for testing web search streaming events
+- Available in development mode only
+
 ## Troubleshooting Guide
 
 ### Common Issues & Solutions
@@ -601,6 +627,9 @@ const campaigns = await db.collection('campaigns').find({ tenantId });
 - Admin portal uses SEPARATE authentication (`/api/admin/*`) from tenant app (`/api/auth/*`)
 - All tenant-scoped routes use `/api/*` prefix and require tenant middleware
 - Use correlation IDs for request tracking (see "Debugging & Request Tracking" section for details)
+- **Server Logs**: All logs consolidated in `server/logs/server-%DATE%.log` (one file per day)
+- **Log Filtering**: Use context labels (mcp, api, query, auth) to filter JSON logs
+- **Web Search Tool**: Uses `server_tool_use` blocks (not `tool_use`) in streaming responses
 
 ### Frontend Development
 - Web app (port 3000): Uses Tailwind CSS v4
@@ -608,6 +637,9 @@ const campaigns = await db.collection('campaigns').find({ tenantId });
 - Both apps use Vite with `@vitejs/plugin-react` (not `plugin-react-swc`)
 - Always use authenticated API calls through `services/api.ts`
 - Handle CORS by ensuring backend includes your port in allowed origins
+- **Markdown Rendering**: Use `remark-gfm` plugin with ReactMarkdown for table support
+- **UI Components**: All components properly support React refs (using `forwardRef`)
+- **Word Wrap**: Apply `break-words` class to prevent text clipping in containers
 
 ### Testing Email Service
 - Development mode uses Ethereal (auto-configured)

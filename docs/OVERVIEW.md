@@ -120,6 +120,24 @@ This documentation is organized to serve different audiences:
 - Email: `demo@example.com`
 - Password: `Demo123`
 
+## Recent Improvements (October 2025)
+
+### Logging & Debugging Enhancements
+- **Unified Server Logs**: Consolidated all server logs into single daily files for easier debugging
+- **Test Endpoints**: New debugging endpoints for web search and MCP integrations
+- **Context Filtering**: JSON logs with context labels for precise filtering
+
+### Cohort Builder Improvements
+- **Web Search Integration**: Fixed display and rendering of web search tool results
+- **Table Support**: GitHub Flavored Markdown for beautiful data table rendering
+- **Better UX**: Word wrapping, improved formatting, responsive design
+- **AI-Powered**: Natural language audience building with Claude and 83M demographic records
+
+### UI/UX Polish
+- **Component Fixes**: All React components properly support refs (no more console warnings)
+- **Responsive Tables**: Data tables render properly with clean formatting
+- **Text Handling**: Smart word wrapping prevents horizontal scrolling
+
 ## Support
 
 For questions, issues, or contributions:
