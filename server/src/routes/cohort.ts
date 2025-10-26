@@ -422,9 +422,10 @@ cohort.post('/chat', async (c) => {
         }));
         conversationMessages.push({ role: 'user', content: query });
 
-        // Initialize memory service for tenant
-        const memoryService = await MemoryService.init(tenant.id);
-        const memory = betaMemoryTool(memoryService);
+        // NOTE: Memory service temporarily disabled - memory tool type not supported by API yet
+        // const memoryService = await MemoryService.init(tenant.id);
+        // const memory = betaMemoryTool(memoryService);
+        const memoryService = await MemoryService.init(tenant.id); // Still initialize for tool execution
 
         let continueConversation = true;
         let iterations = 0;
@@ -570,8 +571,9 @@ User asks: "Show me young professionals"
                   },
                   required: ['sql']
                 }
-              },
-              memory
+              }
+              // NOTE: Memory tool temporarily disabled - type 'memory_20250818' not supported by API yet
+              // memory
             ],
             betas: ['context-management-2025-06-27']
           });
