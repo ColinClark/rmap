@@ -49,7 +49,7 @@ export default function TenantsPage() {
   const fetchAvailableApps = async (plan: string) => {
     setLoadingApps(true)
     try {
-      const response = await AuthUtils.fetchWithAuth(`http://localhost:4000/admin/apps/catalog/${plan}`)
+      const response = await AuthUtils.fetchWithAuth(`/admin/apps/catalog/${plan}`)
 
       if (!response.ok) {
         throw new Error('Failed to fetch apps')
@@ -74,7 +74,7 @@ export default function TenantsPage() {
 
   const fetchTenants = async () => {
     try {
-      const response = await AuthUtils.fetchWithAuth('http://localhost:4000/admin/tenants')
+      const response = await AuthUtils.fetchWithAuth('/admin/tenants')
 
       if (!response.ok) {
         throw new Error('Failed to fetch tenants')
@@ -95,7 +95,7 @@ export default function TenantsPage() {
 
   const handleCreateTenant = async () => {
     try {
-      const response = await AuthUtils.fetchWithAuth('http://localhost:4000/admin/tenants', {
+      const response = await AuthUtils.fetchWithAuth('/admin/tenants', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -137,7 +137,7 @@ export default function TenantsPage() {
     if (!onboardingTenant) return
 
     try {
-      const response = await AuthUtils.fetchWithAuth(`http://localhost:4000/admin/tenants/${onboardingTenant.id}/onboard-admin`, {
+      const response = await AuthUtils.fetchWithAuth(`/admin/tenants/${onboardingTenant.id}/onboard-admin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -199,7 +199,7 @@ export default function TenantsPage() {
 
     try {
       const token = localStorage.getItem('adminToken')
-      const response = await fetch(`http://localhost:4000/admin/tenants/${tenant.id}`, {
+      const response = await fetch(`/admin/tenants/${tenant.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

@@ -60,7 +60,7 @@ export default function TenantEmployeesPage() {
   const fetchEmployees = async () => {
     try {
       const token = localStorage.getItem('adminToken')
-      const response = await fetch(`http://localhost:4000/admin/tenants/${tenantId}/employees`, {
+      const response = await fetch(`/admin/tenants/${tenantId}/employees`, {
         headers: {
           Authorization: `Bearer ${token}`
         }

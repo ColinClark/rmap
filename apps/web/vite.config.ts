@@ -63,6 +63,18 @@
           target: 'http://localhost:4000',
           changeOrigin: true,
         },
+        '/auth': {
+          target: 'http://localhost:4000',
+          changeOrigin: true,
+        },
+        '/user': {
+          target: 'http://localhost:4000',
+          changeOrigin: true,
+        },
+        '/admin': {
+          target: 'http://localhost:4000',
+          changeOrigin: true,
+        },
         '/test-mcp': {
           target: 'http://localhost:4000',
           changeOrigin: true,

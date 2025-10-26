@@ -15,7 +15,7 @@ export default function AppsPage() {
 
   const fetchApps = async () => {
     try {
-      const response = await AuthUtils.fetchWithAuth('http://localhost:4000/admin/apps')
+      const response = await AuthUtils.fetchWithAuth('/admin/apps')
 
       if (!response.ok) {
         throw new Error('Failed to fetch apps')

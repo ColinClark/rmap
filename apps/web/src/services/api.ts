@@ -1,8 +1,8 @@
 import { generateCorrelationId, storeServerCorrelationId } from './correlationId';
 
 // API client for backend communication
-const API_BASE = 'http://localhost:4000/api'
-const AUTH_BASE = 'http://localhost:4000/auth'
+const API_BASE = '/api'
+const AUTH_BASE = '/auth'
 
 // Helper function for API calls with correlation ID
 async function apiCall(endpoint: string, options: RequestInit = {}, useAuthBase = false) {
@@ -225,7 +225,7 @@ export const tenantAPI = {
 
 // Auth API
 // User Profile API (user routes don't require tenant context)
-const USER_BASE = 'http://localhost:4000/user'
+const USER_BASE = '/user'
 
 export const userAPI = {
   getProfile: async () => {

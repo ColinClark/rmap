@@ -14,7 +14,7 @@ export default function AdminsPage() {
   const fetchAdmins = async () => {
     try {
       const token = localStorage.getItem('adminToken')
-      const response = await fetch('http://localhost:4000/admin/admins', {
+      const response = await fetch('/admin/admins', {
         headers: {
           Authorization: `Bearer ${token}`
         }
