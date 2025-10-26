@@ -53,96 +53,6 @@ const workflows: WorkflowCard[] = [
     badge: 'Most Used'
   },
   {
-    id: 'google-ads',
-    title: 'Google Ads Manager',
-    description: 'Create and manage Google Ads campaigns with AI optimization',
-    icon: Globe,
-    color: 'bg-green-500',
-    status: 'available',
-    permission: 'google_ads',
-    usage: { lastUsed: '1 day ago', timesUsed: 23 }
-  },
-  {
-    id: 'meta-ads',
-    title: 'Meta Business Suite',
-    description: 'Manage Facebook and Instagram advertising campaigns',
-    icon: Megaphone,
-    color: 'bg-indigo-500',
-    status: 'available',
-    permission: 'meta_ads',
-    usage: { lastUsed: '3 days ago', timesUsed: 18 }
-  },
-  {
-    id: 'linkedin-ads',
-    title: 'LinkedIn Campaign Manager',
-    description: 'B2B advertising and lead generation on LinkedIn',
-    icon: Users,
-    color: 'bg-cyan-500',
-    status: 'available',
-    permission: 'linkedin_ads',
-    usage: { timesUsed: 12 }
-  },
-  {
-    id: 'programmatic-dsp',
-    title: 'Programmatic DSP',
-    description: 'Automated media buying across multiple ad exchanges',
-    icon: Zap,
-    color: 'bg-purple-500',
-    status: 'coming-soon',
-    permission: 'dsp',
-    badge: 'Coming Soon'
-  },
-  {
-    id: 'analytics-hub',
-    title: 'Analytics Hub',
-    description: 'Cross-channel performance analytics and reporting',
-    icon: BarChart3,
-    color: 'bg-orange-500',
-    status: 'available',
-    permission: 'analytics',
-    usage: { lastUsed: 'Yesterday', timesUsed: 67 }
-  },
-  {
-    id: 'budget-optimizer',
-    title: 'Budget Optimizer',
-    description: 'AI-powered budget allocation across all channels',
-    icon: DollarSign,
-    color: 'bg-emerald-500',
-    status: 'available',
-    permission: 'budget',
-    usage: { timesUsed: 8 }
-  },
-  {
-    id: 'campaign-calendar',
-    title: 'Campaign Calendar',
-    description: 'Plan and schedule campaigns across all platforms',
-    icon: Calendar,
-    color: 'bg-pink-500',
-    status: 'available',
-    permission: 'calendar',
-    usage: { lastUsed: '5 days ago', timesUsed: 31 }
-  },
-  {
-    id: 'audience-insights',
-    title: 'Audience Insights',
-    description: 'Deep dive into audience behavior and preferences',
-    icon: Brain,
-    color: 'bg-violet-500',
-    status: 'coming-soon',
-    permission: 'insights',
-    badge: 'Beta'
-  },
-  {
-    id: 'creative-studio',
-    title: 'Creative Studio',
-    description: 'AI-powered ad creative generation and testing',
-    icon: Sparkles,
-    color: 'bg-rose-500',
-    status: 'locked',
-    permission: 'creative',
-    badge: 'Premium'
-  },
-  {
     id: 'data-query',
     title: 'Data Query',
     description: 'Execute SQL queries and explore your data warehouse',
@@ -152,16 +62,6 @@ const workflows: WorkflowCard[] = [
     permission: 'data',
     usage: { lastUsed: 'Just now', timesUsed: 12 },
     badge: 'New'
-  },
-  {
-    id: 'data-connector',
-    title: 'Data Connector',
-    description: 'Connect and sync data from multiple sources',
-    icon: Database,
-    color: 'bg-slate-500',
-    status: 'available',
-    permission: 'data',
-    usage: { timesUsed: 5 }
   },
   {
     id: 'campaign-templates',
