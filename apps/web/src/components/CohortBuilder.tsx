@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -112,12 +113,20 @@ AND tech_affinity > 0.8`,
   const [activeTab, setActiveTab] = useState('chat');
   const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set());
   // const messagesEndRef = useRef<HTMLDivElement>(null); // Removed auto-scrolling
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Removed auto-scrolling - let users control their own scroll position
   // useEffect(() => {
   //   messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   // }, [messages]);
+
+  // Auto-resize textarea as content grows
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = inputRef.current.scrollHeight + 'px';
+    }
+  }, [input]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -784,20 +793,27 @@ AND tech_affinity > 0.8`,
               
               {/* Input Area */}
               <div className="p-4 border-t">
-                <div className="flex space-x-2">
-                  <Input
+                <div className="flex space-x-2 items-end">
+                  <Textarea
                     ref={inputRef}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend();
+                      }
+                    }}
                     placeholder="Describe your target audience..."
                     disabled={isLoading}
-                    className="flex-1"
+                    className="flex-1 min-h-[40px] max-h-[200px] resize-none"
+                    rows={1}
                   />
-                  <Button 
-                    onClick={handleSend} 
+                  <Button
+                    onClick={handleSend}
                     disabled={!input.trim() || isLoading}
                     size="icon"
+                    className="mb-0"
                   >
                     <Send className="h-4 w-4" />
                   </Button>
