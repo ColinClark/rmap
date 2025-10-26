@@ -232,15 +232,8 @@ async function executeToolCall(
   try {
     logger.info('Executing tool', { toolName, tenantId, hasInput: !!toolInput });
 
-    // Web search is handled by Anthropic server-side, not by us
-    if (toolName === 'web_search') {
-      // This shouldn't be called since Anthropic handles web_search automatically
-      // But if it is, just return a placeholder
-      return JSON.stringify({
-        note: 'Web search is handled by Anthropic',
-        results: []
-      });
-    }
+    // Note: web_search is a server-side tool handled by Anthropic and is never executed here
+    // It's filtered out in the tool execution loop before calling this function
 
     // Memory tool commands
     if (toolName === 'memory') {
@@ -641,7 +634,7 @@ User asks: "Show me young professionals"
               hasToolUse = true;
               logger.info('Tool use detected', { toolName: block.name });
 
-              // Send tool_use event to client BEFORE executing
+              // Send tool_use event to client for UI display
               await stream.writeSSE({
                 data: JSON.stringify({
                   type: 'tool_use',
@@ -651,7 +644,15 @@ User asks: "Show me young professionals"
                 })
               });
 
-              // Execute tool
+              // Web search is a server-side tool handled by Anthropic
+              // Don't execute it locally - just let the UI show it's being used
+              if (block.name === 'web_search') {
+                logger.info('Web search is server-side tool - skipping local execution');
+                // Don't add to toolResults - Anthropic handles this automatically
+                continue;
+              }
+
+              // Execute custom tools (catalog, sql, memory)
               const toolResult = await executeToolCall(
                 block.name,
                 block.input,
@@ -677,8 +678,6 @@ User asks: "Show me young professionals"
                   resultSummary = `Executed SQL query (${parsedResult.data?.length || 0} rows)`;
                 } else if (block.name === 'catalog') {
                   resultSummary = 'Retrieved database schema';
-                } else if (block.name === 'web_search') {
-                  resultSummary = 'Web search completed';
                 } else {
                   resultSummary = `Retrieved ${block.name} data`;
                 }
