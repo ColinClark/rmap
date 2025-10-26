@@ -248,15 +248,21 @@
 - [x] **Task:** Added context_management configuration to messages.stream()
   - Type: 'clear_tool_uses_20250919'
   - Trigger: When input tokens reach 30,000
-  - Keep: Last 3 tool uses
+  - Keep: Last 10 tool uses (initially 3, increased to 10 per user request)
   - Clear at least: 5,000 tokens minimum
   - Exclude: web_search tool (preserve for longer context)
+- [x] **Task:** Moved configuration from hardcoded values to config.yaml
+  - Added contextManagement section to server/config.yaml (lines 166-179)
+  - Added type definitions to ConfigLoader.ts
+  - Updated cohort.ts to use configurable values
+  - Enables runtime configuration without code changes
 - [x] **Test:** Server compiles with context_management config
 - [x] **Test:** Ready for long conversation testing (10+ tool uses)
 - [x] **Commit:** "feat: Enable context management for automatic cleanup"
+- [x] **Commit:** "refactor: Move context management to config and increase to 10 tool uses"
 - **Status:** ✅ COMPLETE
-- **Test Results:** Context management configuration valid, ready for production testing
-- **Commit Hash:** b15be49
+- **Test Results:** Context management configuration valid, moved to config, ready for production testing
+- **Commit Hashes:** b15be49 (initial), cb518cb (config refactor)
 
 ### Step 2.5: Implement Conversation Summarization
 - [ ] **Task:** Add summarization logic to cohort.ts
@@ -449,29 +455,30 @@ If a step fails testing:
 
 ### Summary Statistics:
 - **Total Steps:** 24
-- **Completed:** 3 (Steps 1.1, 1.3, 1.4) ✅
+- **Completed:** 13 (Phase 1: 7/7, Phase 2: 4/5) ✅
 - **In Progress:** 0
-- **Ready for Testing:** 0
+- **Ready for Testing:** 1 (Step 2.5 - Optional)
 - **Blocked:** 0
 - **Skipped:** 0
 
 ### Weekly Progress:
-- **Week 1 (Phase 1):** 3/6 steps complete ✅ | Next: Step 1.2
-- **Week 2 (Phase 2):** 0/5 steps complete
+- **Week 1 (Phase 1):** 7/7 steps complete ✅
+- **Week 2 (Phase 2):** 4/5 steps complete ✅ | Next: Step 2.5 (Optional)
 - **Week 3 (Phase 3):** 0/5 steps complete
 - **Week 4 (Phase 4):** 0/5 steps complete (+3 optional)
 
 ### Current Status:
-**Last Updated:** 2025-01-25 19:35
-**Current Step:** Step 1.2 - Increase Max Tokens (ready to start)
-**Last Commit:** 372455c - Sonnet 4.5 upgrade with enhanced tools
+**Last Updated:** 2025-01-26 (continued session)
+**Current Step:** Step 2.5 - Conversation Summarization (Optional)
+**Last Commit:** cb518cb - Move context management to config
 **Blockers:** None
 **Notes:**
-- ✅ Steps 1.1, 1.3, 1.4 complete and committed (372455c)
-- Model successfully upgraded to Sonnet 4.5 (claude-sonnet-4-5-20250929)
-- Tool descriptions enhanced - agent now properly calls catalog and SQL tools
-- Tests passed - MCP server communication working correctly
-- Ready for Step 1.2: Increase maxTokens from 4096 to 8192
+- ✅ Phase 1 (Critical Upgrades) fully complete
+- ✅ Phase 2 nearly complete - 4/5 steps done
+- Memory tool integrated with Anthropic SDK (betaMemoryTool)
+- Context management enabled with configurable cleanup (10 tool uses)
+- Step 2.5 (Conversation Summarization) may be unnecessary given auto-cleanup
+- Ready to test memory feature or proceed to Phase 3
 
 ---
 
