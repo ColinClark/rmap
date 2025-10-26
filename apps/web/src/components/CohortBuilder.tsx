@@ -606,8 +606,8 @@ AND tech_affinity > 0.8`,
                           key={message.id}
                           className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-300"
                         >
-                          <div className="max-w-[85%] bg-muted/40 rounded-lg p-3 border border-muted/50">
-                            <div className="prose prose-sm dark:prose-invert max-w-none opacity-80
+                          <div className="max-w-[85%] break-words bg-muted/40 rounded-lg p-3 border border-muted/50">
+                            <div className="prose prose-sm dark:prose-invert max-w-none break-words opacity-80
                                         prose-headings:text-muted-foreground prose-headings:font-medium prose-headings:italic
                                         prose-h1:text-lg prose-h2:text-base prose-h3:text-sm
                                         prose-p:text-muted-foreground prose-p:italic prose-p:leading-normal
@@ -630,12 +630,12 @@ AND tech_affinity > 0.8`,
                           key={message.id}
                           className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-500"
                         >
-                          <div className="max-w-[85%] bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-lg p-4 border border-primary/20 shadow-sm">
+                          <div className="max-w-[85%] break-words bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-lg p-4 border border-primary/20 shadow-sm">
                             <div className="flex items-start gap-2 mb-2">
                               <Sparkles className="h-4 w-4 text-primary mt-0.5" />
                               <span className="text-xs font-medium text-primary">Analysis Complete</span>
                             </div>
-                            <div className="prose prose-sm dark:prose-invert max-w-none
+                            <div className="prose prose-sm dark:prose-invert max-w-none break-words
                                         prose-headings:text-foreground prose-headings:font-semibold
                                         prose-h1:text-2xl prose-h1:mb-4 prose-h1:mt-2
                                         prose-h2:text-xl prose-h2:mb-3 prose-h2:mt-4 prose-h2:border-b prose-h2:border-border prose-h2:pb-2
@@ -701,8 +701,8 @@ AND tech_affinity > 0.8`,
                       >
                         <div
                           className={cn(
-                            "max-w-[85%] rounded-lg p-3",
-                            message.type === 'user' 
+                            "max-w-[85%] break-words rounded-lg p-3",
+                            message.type === 'user'
                               ? 'bg-primary text-primary-foreground'
                               : message.type === 'system'
                               ? 'bg-muted text-muted-foreground italic'
@@ -710,7 +710,7 @@ AND tech_affinity > 0.8`,
                           )}
                         >
                           <div className={cn(
-                            "prose prose-sm dark:prose-invert max-w-none",
+                            "prose prose-sm dark:prose-invert max-w-none break-words",
                             message.type === 'user' ? 
                               "prose-invert" :
                               `prose-headings:text-foreground prose-headings:font-medium
