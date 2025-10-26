@@ -478,10 +478,9 @@ export function AudienceRefinement({ data, onUpdate, onPrev }: AudienceRefinemen
       </Card>
 
       <Tabs defaultValue="table" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="table">Population Data</TabsTrigger>
           <TabsTrigger value="statistics">Statistics & Analysis</TabsTrigger>
-          <TabsTrigger value="chat">AI Refinement Chat</TabsTrigger>
         </TabsList>
 
         {/* Population Data Table */}
@@ -673,76 +672,6 @@ export function AudienceRefinement({ data, onUpdate, onPrev }: AudienceRefinemen
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-
-        {/* AI Chat Tab */}
-        <TabsContent value="chat" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <MessageSquare className="h-5 w-5" />
-                <span>AI Population Refinement Chat</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="h-64 border border-border rounded-lg p-4 overflow-y-auto bg-muted/10">
-                  {chatMessages.map((message) => (
-                    <div key={message.id} className={`mb-3 ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
-                      <div className={`inline-block p-3 rounded-lg max-w-[80%] ${
-                        message.type === 'user' 
-                          ? 'bg-primary text-primary-foreground' 
-                          : message.type === 'system'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-muted text-foreground'
-                      }`}>
-                        <div className="text-sm">{message.content}</div>
-                        {message.populationCount && (
-                          <div className="text-xs mt-1 opacity-75">
-                            Population: {message.populationCount.toLocaleString()}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {isProcessing && (
-                    <div className="text-left">
-                      <div className="inline-block p-3 rounded-lg bg-muted text-foreground">
-                        <div className="flex items-center space-x-2">
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                          <span className="text-sm">Processing your request...</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex space-x-2">
-                  <Textarea
-                    placeholder="Try: 'Show only females aged 25-35' or 'Filter to university graduates in Bayern'"
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
-                    className="flex-1"
-                    rows={2}
-                  />
-                  <Button 
-                    onClick={handleSendMessage} 
-                    disabled={isProcessing || !inputMessage.trim()}
-                    size="icon"
-                    className="self-end"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                <div className="text-xs text-muted-foreground">
-                  <strong>Available commands:</strong> age ranges (18-30), gender (male/female), education (university, gymnasium), 
-                  location (state names), household size, occupation filters, or 'clear filters' to reset.
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
 
