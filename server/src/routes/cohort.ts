@@ -463,9 +463,10 @@ cohort.post('/chat', async (c) => {
               },
               {
                 name: 'catalog',
-                description: `Explore the schema of the synthie database containing 83M German population records.
+                description: `Explore the database schema to discover available tables, columns, and data structure.
 
 **What this tool returns:**
+- Available tables and their names
 - Available columns with their data types (demographics, psychographics, behaviors)
 - Sample values to understand the data
 - Value ranges and distributions
@@ -473,23 +474,19 @@ cohort.post('/chat', async (c) => {
 
 **When to use this tool:**
 - ALWAYS call this FIRST in every new conversation to understand available data
+- To discover what tables exist in the database
 - When you don't know the exact column names
 - When you need to see example values before writing SQL
 - When exploring what demographic/psychographic data is available
 
 **Example usage:**
 User asks: "Show me young professionals"
-→ First call catalog to find age and occupation columns
+→ First call catalog to find available tables
+→ Find age and occupation columns
 → See sample values to understand how occupations are labeled
-→ Then write SQL with correct column names
+→ Then write SQL with correct table and column names
 
-**Important:** The database has ONE table called 'synthie' with 83M records. All queries use this table name.
-
-**Available data categories:**
-- Demographics: age, gender, state_label, income, education_level, occupation, household_size, household_children
-- Psychographics: innovation_score, shopping_preference, brand_affinity, lifestyle_segment
-- Behaviors: shopping_frequency, shopping_location, online_shopping_propensity, category_affinity_*
-- Geographic: bundesland, city_size_category, urban_rural_flag`,
+**Important:** Use the catalog to discover the actual table names and structure - do not assume!`,
                 input_schema: {
                   type: 'object',
                   properties: {}
@@ -497,49 +494,47 @@ User asks: "Show me young professionals"
               },
               {
                 name: 'sql',
-                description: `Execute SQL queries on the synthie database (83M German population records).
+                description: `Execute SQL queries on the population database.
 
 **What this tool does:**
-- Runs DuckDB SQL queries against the 'synthie' table
+- Runs DuckDB SQL queries against the database tables
 - Returns query results with row count
 - Provides data for cohort analysis and demographic breakdowns
 
 **When to use this tool:**
-- After calling catalog to understand available columns
-- To get cohort sizes: SELECT COUNT(*) FROM synthie WHERE ...
-- To get demographic breakdowns: SELECT column, COUNT(*) FROM synthie GROUP BY column
+- After calling catalog to understand available tables and columns
+- To get cohort sizes with COUNT(*) queries
+- To get demographic breakdowns with GROUP BY
 - To analyze specific segments with filters
 
 **Query guidelines:**
-- Table name is ALWAYS 'synthie' (not 'synthiedb' or other variations)
+- ALWAYS use catalog tool FIRST to discover the correct table names
 - Start with COUNT queries to check cohort size before detailed queries
 - Use WHERE clauses for filtering (age, income, location, etc.)
 - Use GROUP BY for demographic breakdowns
-- Calculate percentages: (COUNT(*) * 100.0 / 83000000) AS percentage
 - Limit large result sets for performance
 
-**Example queries:**
+**Example query pattern:**
 
 1. Get cohort size:
-   SELECT COUNT(*) FROM synthie WHERE age BETWEEN 25 AND 34
+   SELECT COUNT(*) FROM [table_name] WHERE age BETWEEN 25 AND 34
 
 2. Demographic breakdown:
    SELECT gender, COUNT(*) as count
-   FROM synthie
+   FROM [table_name]
    WHERE age BETWEEN 25 AND 34
    GROUP BY gender
 
 3. Complex filtering:
-   SELECT COUNT(*) FROM synthie
+   SELECT COUNT(*) FROM [table_name]
    WHERE age BETWEEN 25 AND 34
      AND income > 50000
-     AND state_label = 'Berlin'
 
 **Common mistakes to avoid:**
-- ❌ Wrong table name: SELECT * FROM synthiedb (incorrect)
-- ✅ Correct table name: SELECT * FROM synthie
-- ❌ Missing filters: SELECT * FROM synthie (returns 83M rows!)
-- ✅ Always filter: SELECT * FROM synthie WHERE age > 25 LIMIT 100
+- ❌ Guessing table names without checking catalog first
+- ❌ Missing filters on large tables (can return millions of rows!)
+- ✅ Always use catalog to discover table names
+- ✅ Always use WHERE or LIMIT to control result size
 
 **Performance tips:**
 - Use LIMIT for large result sets
@@ -551,7 +546,7 @@ User asks: "Show me young professionals"
                   properties: {
                     sql: {
                       type: 'string',
-                      description: 'DuckDB SQL query to execute against the synthie table. Must be valid DuckDB syntax.'
+                      description: 'DuckDB SQL query to execute. Use catalog tool first to discover table names. Must be valid DuckDB syntax.'
                     }
                   },
                   required: ['sql']
