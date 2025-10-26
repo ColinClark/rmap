@@ -5,9 +5,10 @@
     "rootDir": "./src",
     "declaration": true,
     "declarationMap": true,
-    "composite": true,
     "jsx": "react-jsx",
-    "noEmit": false
+    "noEmit": false,
+    "moduleResolution": "node",
+    "allowImportingTsExtensions": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

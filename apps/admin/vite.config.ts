@@ -13,7 +13,9 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0',
     port: 3001,
+    allowedHosts: ['monster.local', '.local'],
     proxy: {
       '/api': {
         target: 'http://localhost:4000',

@@ -54,7 +54,7 @@ const app = new Hono()
 app.use('*', requestContextMiddleware)
 app.use('*', logger())
 app.use('*', cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173', 'https://*.yourdomain.com'],
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173', 'http://monster.local:3000', 'http://monster.local:3001', 'https://*.yourdomain.com'],
   credentials: true,
 }))
 
