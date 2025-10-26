@@ -872,22 +872,13 @@ AND tech_affinity > 0.8`,
                 </div>
                 
                 <div className="pt-3 space-y-2">
-                  <Button 
-                    className="w-full" 
+                  <Button
+                    className="w-full"
                     size="sm"
                     onClick={() => handleAction({ type: 'save', id: '1' })}
                   >
                     <Database className="h-4 w-4 mr-2" />
                     Save Cohort
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full" 
-                    size="sm"
-                    onClick={() => handleAction({ type: 'export', id: '1' })}
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy SQL Query
                   </Button>
                 </div>
               </CardContent>
