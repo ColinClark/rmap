@@ -8,7 +8,8 @@ import { tenantMiddleware } from '../middleware/tenant';
 import configLoader from '../services/config/ConfigLoader';
 import { QueryExecutor } from '../services/mcp/QueryExecutor';
 import { MemoryService } from '../services/memory/MemoryService';
-import sqlValidator from '../services/validation/SQLValidator';
+// SQL validation disabled - MCP server handles validation
+// import sqlValidator from '../services/validation/SQLValidator';
 import cohortEvaluator from '../services/evaluation/CohortEvaluator';
 import type { CohortData, CohortRequirements } from '../services/evaluation/CohortEvaluator';
 
@@ -265,37 +266,9 @@ async function executeToolCall(
     } else if (toolName === 'sql') {
       const sqlQuery = toolInput.sql || toolInput.query;
 
-      // Validate SQL before execution
-      const validationResult = sqlValidator.validate(sqlQuery);
+      // SQL validation disabled - let MCP server handle all validation
 
-      if (!validationResult.valid) {
-        // Return validation errors to agent for self-correction
-        const errorMessage = sqlValidator.formatValidationMessage(validationResult);
-        logger.warn('SQL validation failed', {
-          sql: sqlQuery,
-          errors: validationResult.errors,
-          warnings: validationResult.warnings
-        });
-
-        // Return structured error that agent can understand
-        return JSON.stringify({
-          error: 'SQL validation failed',
-          validation_errors: validationResult.errors,
-          validation_warnings: validationResult.warnings,
-          formatted_message: errorMessage,
-          original_query: sqlQuery
-        });
-      }
-
-      // Log warnings (non-blocking)
-      if (validationResult.warnings.length > 0) {
-        logger.info('SQL validation warnings', {
-          sql: sqlQuery,
-          warnings: validationResult.warnings
-        });
-      }
-
-      // Execute validated SQL
+      // Execute SQL directly
       const executor = QueryExecutor.forTenant(tenantId);
       // Don't pass database parameter - let MCP server use its default
       const result = await executor.executeSQL(sqlQuery);
