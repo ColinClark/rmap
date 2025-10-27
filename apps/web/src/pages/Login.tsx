@@ -31,11 +31,6 @@ export function Login() {
     }
   };
 
-  const handleDemoLogin = () => {
-    setEmail('test@example.com');
-    setPassword('password123');
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <div className="w-full max-w-md px-4">
@@ -95,21 +90,13 @@ export function Login() {
                 </Alert>
               )}
 
-              <div className="flex items-center justify-between text-sm">
-                <Link 
-                  to="/forgot-password" 
+              <div className="flex items-center justify-start text-sm">
+                <Link
+                  to="/forgot-password"
                   className="text-primary hover:underline"
                 >
                   Forgot password?
                 </Link>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleDemoLogin}
-                >
-                  Use demo account
-                </Button>
               </div>
 
               <Button 
@@ -128,14 +115,6 @@ export function Login() {
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="flex justify-center">
-            <p className="text-sm text-muted-foreground">
-              Don't have an account?{' '}
-              <Link to="/register" className="text-primary hover:underline">
-                Create one
-              </Link>
-            </p>
-          </CardFooter>
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-8">
