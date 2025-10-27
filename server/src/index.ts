@@ -22,6 +22,7 @@ const config = configLoader.loadConfig()
 // Import MongoDB service
 import { mongoService } from './services/mongodb'
 import { emailService } from './services/EmailService'
+import ChatHistoryService from './services/ChatHistoryService'
 import { Logger } from './utils/logger'
 
 const appLogger = new Logger('Server')
@@ -134,6 +135,11 @@ async function startServer() {
     appLogger.info('Connecting to MongoDB...')
     await mongoService.connect()
     appLogger.info('MongoDB connected successfully')
+
+    // Initialize chat history indexes
+    appLogger.info('Creating chat history indexes...')
+    await ChatHistoryService.createIndexes()
+    appLogger.info('Chat history indexes created')
 
     // Initialize email service
     appLogger.info('Initializing email service...')

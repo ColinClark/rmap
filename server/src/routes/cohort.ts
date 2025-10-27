@@ -8,6 +8,7 @@ import { tenantMiddleware } from '../middleware/tenant';
 import configLoader from '../services/config/ConfigLoader';
 import { QueryExecutor } from '../services/mcp/QueryExecutor';
 import { MemoryService } from '../services/memory/MemoryService';
+import ChatHistoryService from '../services/ChatHistoryService';
 // SQL validation disabled - MCP server handles validation
 // import sqlValidator from '../services/validation/SQLValidator';
 import cohortEvaluator from '../services/evaluation/CohortEvaluator';
@@ -51,6 +52,8 @@ interface CohortMessage {
 interface CohortRequest {
   messages: CohortMessage[];
   query: string;
+  sessionId?: string; // Optional session ID for chat history
+  userId?: string; // Optional user ID for chat history
 }
 
 // Extract cohort requirements from conversation context
@@ -362,12 +365,58 @@ cohort.post('/chat', async (c) => {
     if (!tenant) {
       return c.json({ error: 'Tenant not found' }, 500);
     }
-    
+
     const body = await c.req.json() as CohortRequest;
-    const { messages, query } = body;
-    
+    const { messages, query, userId = 'anonymous' } = body;
+
     if (!messages || !query) {
       return c.json({ error: 'Invalid request' }, 400);
+    }
+
+    // Generate or get session ID for chat history
+    let sessionId = body.sessionId;
+    const isNewSession = !sessionId;
+    if (!sessionId) {
+      sessionId = `cohort_${tenant.id}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    }
+
+    logger.info('Chat request received', {
+      sessionId,
+      tenantId: tenant.id,
+      userId,
+      isNewSession,
+      messagesCount: messages.length,
+      hasSessionId: !!body.sessionId
+    });
+
+    // Create new chat session if no session ID was provided
+    if (isNewSession) {
+      try {
+        await ChatHistoryService.createSession({
+          sessionId,
+          tenantId: tenant.id,
+          userId,
+          app: 'cohort_builder',
+          workflow: 'retail_media',
+          model: cohortConfig.llm.model
+        });
+        logger.info('Chat session created', { sessionId, tenantId: tenant.id, userId });
+      } catch (error) {
+        logger.error('Failed to create chat session', { error, sessionId });
+        // Don't fail the request if chat history fails
+      }
+    }
+
+    // Log the user message
+    try {
+      await ChatHistoryService.addMessage(sessionId, tenant.id, {
+        role: 'user',
+        content: query,
+        timestamp: new Date()
+      });
+      logger.debug('User message logged', { sessionId, contentLength: query.length });
+    } catch (error) {
+      logger.error('Failed to log user message', { error, sessionId });
     }
 
     const anthropicClient = getAnthropicClient();
@@ -389,6 +438,7 @@ cohort.post('/chat', async (c) => {
         let iterations = 0;
         const maxIterations = cohortConfig.llm.maxIterations || 20;
         let phase: 'exploring' | 'analyzing' | 'finalizing' = 'exploring';
+        let sessionToolUses: string[] = []; // Track all tool uses for this session
 
         while (continueConversation && iterations < maxIterations) {
           iterations++;
@@ -582,12 +632,15 @@ User asks: "Show me young professionals"
 
           logger.info('Response content blocks', {
             blockCount: finalMessage.content.length,
-            types: finalMessage.content.map((b: any) => b.type)
+            types: finalMessage.content.map((b: any) => b.type),
+            usage: finalMessage.usage
           });
 
           // Use finalMessage.content as the complete assistant content
           // This includes all text blocks AND tool_use blocks
           const assistantContent = finalMessage.content;
+          const iterationToolUses: string[] = []; // Track tools used in this iteration (names only)
+          const detailedToolUses: any[] = []; // Track detailed tool use information for chat history
 
           // Check for tool use and execute tools
           for (const block of finalMessage.content) {
@@ -598,10 +651,21 @@ User asks: "Show me young professionals"
 
             // Handle server tool results (web_search_tool_result)
             if (isWebSearchResult && 'tool_use_id' in block && 'content' in block) {
+              const webSearchResults = Array.isArray(block.content) ? block.content : [];
+
               logger.info('Web search result detected', {
                 toolUseId: block.tool_use_id,
-                resultCount: Array.isArray(block.content) ? block.content.length : 0
+                resultCount: webSearchResults.length
               });
+
+              // Find the corresponding tool use and add the result
+              const toolUse = detailedToolUses.find((t: any) => t.toolId === block.tool_use_id);
+              if (toolUse) {
+                toolUse.result = {
+                  count: webSearchResults.length,
+                  results: webSearchResults
+                };
+              }
 
               // Send tool result to client
               await stream.writeSSE({
@@ -609,10 +673,10 @@ User asks: "Show me young professionals"
                   type: 'tool_result',
                   tool: 'web_search',
                   result: {
-                    results: block.content,
-                    count: Array.isArray(block.content) ? block.content.length : 0
+                    results: webSearchResults,
+                    count: webSearchResults.length
                   },
-                  resultSummary: `Found ${Array.isArray(block.content) ? block.content.length : 0} web search results`
+                  resultSummary: `Found ${webSearchResults.length} web search results`
                 })
               });
               continue;
@@ -620,10 +684,31 @@ User asks: "Show me young professionals"
 
             if ((isToolUse || isServerToolUse) && 'name' in block && 'input' in block && 'id' in block) {
               hasToolUse = true;
+              const toolName = block.name;
+
+              // Track tool use for chat history (names only)
+              if (!iterationToolUses.includes(toolName)) {
+                iterationToolUses.push(toolName);
+              }
+              if (!sessionToolUses.includes(toolName)) {
+                sessionToolUses.push(toolName);
+              }
+
+              // Capture detailed tool use information for chat history
+              const toolUseDetail = {
+                toolName,
+                toolId: block.id,
+                input: block.input,
+                timestamp: new Date(),
+                isServerTool: isServerToolUse
+              };
+              detailedToolUses.push(toolUseDetail);
+
               logger.info('Tool use detected', {
-                toolName: block.name,
+                toolName,
                 toolType: block.type,
-                isServerSide: isServerToolUse
+                isServerSide: isServerToolUse,
+                input: block.input
               });
 
               // Send tool_use event to client for UI display
@@ -678,6 +763,12 @@ User asks: "Show me young professionals"
                 }
               }
 
+              // Add result to detailed tool use for chat history
+              const toolUseDetail = detailedToolUses.find((t: any) => t.toolId === block.id);
+              if (toolUseDetail) {
+                toolUseDetail.result = parsedResult;
+              }
+
               await stream.writeSSE({
                 data: JSON.stringify({
                   type: 'tool_result',
@@ -694,6 +785,36 @@ User asks: "Show me young professionals"
                 content: toolResult
               });
             }
+          }
+
+          // Log assistant message to chat history
+          try {
+            // Extract text content from assistant response for logging
+            const textBlocks = assistantContent.filter((b: any) => b.type === 'text');
+            const assistantText = textBlocks.map((b: any) => b.text).join('\n');
+
+            // Log to MongoDB with detailed tool use information
+            await ChatHistoryService.addMessage(sessionId, tenant.id, {
+              role: 'assistant',
+              content: assistantText || '[Tool use only - no text response]',
+              timestamp: new Date(),
+              tokens: {
+                input: finalMessage.usage?.input_tokens || 0,
+                output: finalMessage.usage?.output_tokens || 0
+              },
+              toolUses: detailedToolUses.length > 0 ? detailedToolUses : undefined
+            });
+
+            logger.debug('Assistant message logged', {
+              sessionId,
+              textLength: assistantText.length,
+              toolsUsed: iterationToolUses,
+              detailedToolCount: detailedToolUses.length,
+              inputTokens: finalMessage.usage?.input_tokens,
+              outputTokens: finalMessage.usage?.output_tokens
+            });
+          } catch (error) {
+            logger.error('Failed to log assistant message', { error, sessionId });
           }
 
           // After processing all blocks, add messages to conversation
@@ -767,13 +888,27 @@ User asks: "Show me young professionals"
           }
         }
 
+        // Complete the chat session
+        try {
+          await ChatHistoryService.completeSession(sessionId, tenant.id);
+          logger.info('Chat session completed', {
+            sessionId,
+            tenantId: tenant.id,
+            totalIterations: iterations,
+            toolsUsed: sessionToolUses
+          });
+        } catch (error) {
+          logger.error('Failed to complete chat session', { error, sessionId });
+        }
+
         await stream.writeSSE({
           data: JSON.stringify({
             type: 'end',
-            totalIterations: iterations
+            totalIterations: iterations,
+            sessionId // Include sessionId in response for client to reuse
           })
         });
-        
+
       } catch (error) {
         logger.error('Cohort chat error', { 
           error: error instanceof Error ? error.message : 'Unknown error',
