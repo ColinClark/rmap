@@ -764,9 +764,9 @@ User asks: "Show me young professionals"
               }
 
               // Add result to detailed tool use for chat history
-              const toolUseDetail = detailedToolUses.find((t: any) => t.toolId === block.id);
-              if (toolUseDetail) {
-                toolUseDetail.result = parsedResult;
+              const foundToolUse = detailedToolUses.find((t: any) => t.toolId === block.id);
+              if (foundToolUse) {
+                foundToolUse.result = parsedResult;
               }
 
               await stream.writeSSE({
