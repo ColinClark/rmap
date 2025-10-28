@@ -20,7 +20,7 @@ mcp:
       schema: /mcp   # Used for catalog tool
       databases: /mcp # Used for database listing
     connection:
-      timeout: 30000  # 30 seconds
+      timeout: 300000  # 5 minutes (300 seconds) - increased for complex SQL queries
       maxRetries: 3
       retryDelay: 1000  # 1 second
     streaming:

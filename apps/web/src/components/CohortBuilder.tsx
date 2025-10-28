@@ -607,16 +607,19 @@ AND tech_affinity > 0.8`,
                           key={message.id}
                           className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-300"
                         >
-                          <div className="max-w-[85%] break-words bg-muted/40 rounded-lg p-3 border border-muted/50">
-                            <div className="prose prose-sm dark:prose-invert max-w-none break-words opacity-80
+                          <div
+                            className="max-w-[85%] break-words bg-muted/40 rounded-lg p-3 border border-muted/50"
+                            style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+                          >
+                            <div className="prose prose-sm dark:prose-invert max-w-none break-words whitespace-pre-wrap opacity-80
                                         prose-headings:text-muted-foreground prose-headings:font-medium prose-headings:italic
                                         prose-h1:text-lg prose-h2:text-base prose-h3:text-sm
                                         prose-p:text-muted-foreground prose-p:italic prose-p:leading-normal
                                         prose-ul:my-2 prose-ol:my-2
                                         prose-li:text-muted-foreground prose-li:italic prose-li:my-0.5
                                         prose-strong:text-muted-foreground prose-strong:italic
-                                        prose-code:text-muted-foreground prose-code:bg-muted/50 prose-code:px-1 prose-code:rounded prose-code:text-xs
-                                        prose-pre:bg-muted/50 prose-pre:text-muted-foreground prose-pre:p-2 prose-pre:text-xs">
+                                        prose-code:text-muted-foreground prose-code:bg-muted/50 prose-code:px-1 prose-code:rounded prose-code:text-xs prose-code:break-words
+                                        prose-pre:bg-muted/50 prose-pre:text-muted-foreground prose-pre:p-2 prose-pre:text-xs prose-pre:whitespace-pre-wrap prose-pre:break-words prose-pre:overflow-x-auto">
                               <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
                             </div>
                           </div>
@@ -631,12 +634,15 @@ AND tech_affinity > 0.8`,
                           key={message.id}
                           className="flex justify-start animate-in fade-in slide-in-from-bottom-2 duration-500"
                         >
-                          <div className="max-w-[85%] break-words bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-lg p-4 border border-primary/20 shadow-sm">
+                          <div
+                            className="max-w-[85%] break-words bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-lg p-4 border border-primary/20 shadow-sm"
+                            style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+                          >
                             <div className="flex items-start gap-2 mb-2">
                               <Sparkles className="h-4 w-4 text-primary mt-0.5" />
                               <span className="text-xs font-medium text-primary">Analysis Complete</span>
                             </div>
-                            <div className="prose prose-sm dark:prose-invert max-w-none break-words
+                            <div className="prose prose-sm dark:prose-invert max-w-none break-words whitespace-pre-wrap
                                         prose-headings:text-foreground prose-headings:font-semibold
                                         prose-h1:text-2xl prose-h1:mb-4 prose-h1:mt-2
                                         prose-h2:text-xl prose-h2:mb-3 prose-h2:mt-4 prose-h2:border-b prose-h2:border-border prose-h2:pb-2
@@ -646,12 +652,12 @@ AND tech_affinity > 0.8`,
                                         prose-li:text-foreground prose-li:marker:text-primary prose-li:my-1
                                         prose-strong:text-foreground prose-strong:font-semibold
                                         prose-em:text-foreground prose-em:italic
-                                        prose-code:text-primary prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono
-                                        prose-pre:bg-muted prose-pre:text-foreground prose-pre:p-3 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:my-3
+                                        prose-code:text-primary prose-code:bg-muted prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-code:break-words
+                                        prose-pre:bg-muted prose-pre:text-foreground prose-pre:p-3 prose-pre:rounded-lg prose-pre:overflow-x-auto prose-pre:my-3 prose-pre:whitespace-pre-wrap prose-pre:break-words
                                         prose-blockquote:border-l-4 prose-blockquote:border-l-primary prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-muted-foreground prose-blockquote:my-3
-                                        prose-table:my-3 prose-table:border-collapse prose-table:w-full
-                                        prose-th:border prose-th:border-border prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:font-semibold
-                                        prose-td:border prose-td:border-border prose-td:px-3 prose-td:py-2
+                                        prose-table:my-3 prose-table:border-collapse prose-table:w-full prose-table:table-auto
+                                        prose-th:border prose-th:border-border prose-th:px-3 prose-th:py-2 prose-th:text-left prose-th:font-semibold prose-th:break-words
+                                        prose-td:border prose-td:border-border prose-td:px-3 prose-td:py-2 prose-td:break-words
                                         prose-hr:border-border prose-hr:my-4">
                               <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
                             </div>
@@ -702,16 +708,17 @@ AND tech_affinity > 0.8`,
                       >
                         <div
                           className={cn(
-                            "max-w-[85%] break-words rounded-lg p-3",
+                            "max-w-[85%] break-words overflow-wrap-anywhere rounded-lg p-3",
                             message.type === 'user'
                               ? 'bg-primary text-primary-foreground'
                               : message.type === 'system'
                               ? 'bg-muted text-muted-foreground italic'
                               : 'bg-muted'
                           )}
+                          style={{ overflowWrap: 'anywhere', wordBreak: 'break-word' }}
                         >
                           <div className={cn(
-                            "prose prose-sm dark:prose-invert max-w-none break-words",
+                            "prose prose-sm dark:prose-invert max-w-none break-words whitespace-pre-wrap",
                             message.type === 'user' ? 
                               "prose-invert" :
                               `prose-headings:text-foreground prose-headings:font-medium
@@ -722,10 +729,10 @@ AND tech_affinity > 0.8`,
                                prose-ul:my-2 prose-ol:my-2
                                prose-li:text-foreground prose-li:my-1
                                prose-strong:text-foreground prose-strong:font-semibold
-                               prose-code:text-primary prose-code:bg-background prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
-                               prose-pre:bg-background prose-pre:text-foreground prose-pre:p-2 prose-pre:rounded prose-pre:my-2
+                               prose-code:text-primary prose-code:bg-background prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:break-words
+                               prose-pre:bg-background prose-pre:text-foreground prose-pre:p-2 prose-pre:rounded prose-pre:my-2 prose-pre:whitespace-pre-wrap prose-pre:break-words prose-pre:overflow-x-auto
                                prose-blockquote:border-l-2 prose-blockquote:border-l-muted-foreground prose-blockquote:pl-3 prose-blockquote:text-muted-foreground
-                               prose-table:border-collapse prose-th:border prose-th:border-border prose-td:border prose-td:border-border`
+                               prose-table:border-collapse prose-table:table-auto prose-th:border prose-th:border-border prose-th:break-words prose-td:border prose-td:border-border prose-td:break-words`
                           )}>
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
                           </div>

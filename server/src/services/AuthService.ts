@@ -34,8 +34,8 @@ interface LoginResult {
 export class AuthService {
   private readonly saltRounds = 10
   private readonly jwtSecret = process.env.JWT_SECRET || 'dev-secret-change-in-production'
-  private readonly jwtExpiresIn = '15m' // Access token expires in 15 minutes
-  private readonly refreshExpiresIn = '7d' // Refresh token expires in 7 days
+  private readonly jwtExpiresIn = process.env.JWT_EXPIRES_IN || '15m' // Access token expiration (default 15 minutes)
+  private readonly refreshExpiresIn = process.env.JWT_REFRESH_EXPIRES_IN || '7d' // Refresh token expiration (default 7 days)
 
   /**
    * Hash a password
