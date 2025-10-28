@@ -30,12 +30,17 @@ function getAnthropicClient(): Anthropic {
     const configApiKey = cohortConfig.llm?.apiKey;
     const envApiKey = process.env.ANTHROPIC_API_KEY;
     const apiKey = (configApiKey && !configApiKey.includes('${')) ? configApiKey : envApiKey;
-    
+
     if (!apiKey) {
       throw new Error('Anthropic API key not configured');
     }
-    
-    anthropic = new Anthropic({ apiKey });
+
+    const timeout = cohortConfig.llm?.timeout || 600000; // Default 10 minutes
+
+    anthropic = new Anthropic({
+      apiKey,
+      timeout
+    });
   }
   return anthropic;
 }

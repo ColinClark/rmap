@@ -69,6 +69,7 @@ cohortBuilder:
     temperature: 0.7
     maxTokens: 32768  # Model supports up to 64K output, 200K input - using 32K for comprehensive cohort analyses
     maxIterations: 50  # Maximum tool-use iterations (increased for complex queries)
+    timeout: 600000  # API timeout in milliseconds (10 minutes) - must be <= nginx timeout
     systemPrompt: |
       You are an expert Cohort Builder assistant for the Retail Media Audience Planner, specializing in audience demographics, psychographics, and SQL analysis using DuckDB.
       
